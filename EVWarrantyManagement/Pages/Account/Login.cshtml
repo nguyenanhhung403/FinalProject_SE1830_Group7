@@ -1,0 +1,38 @@
+@page
+@model EVWarrantyManagement.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "EV Warranty Portal - Sign in";
+}
+
+<div class="min-vh-100 d-flex align-items-center justify-content-center bg-light">
+    <div class="card shadow-sm" style="max-width: 420px; width: 100%;">
+        <div class="card-body p-4">
+            <div class="text-center mb-3">
+                <i class="bi bi-ev-front-fill fs-1 text-primary"></i>
+                <h4 class="mt-2 mb-0">EV Warranty Portal</h4>
+            </div>
+            <form method="post" novalidate>
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <div class="mb-3">
+                    <label asp-for="Input.Username" class="form-label">Username</label>
+                    <input asp-for="Input.Username" class="form-control" autocomplete="username" />
+                    <span asp-validation-for="Input.Username" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Input.Password" class="form-label">Password</label>
+                    <input asp-for="Input.Password" class="form-control" type="password" autocomplete="current-password" />
+                    <span asp-validation-for="Input.Password" class="text-danger"></span>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Sign In</button>
+            </form>
+        </div>
+        <div class="card-footer bg-white text-center small text-muted">
+            Powered by OEM Warranty System
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

@@ -1,0 +1,130 @@
+@page
+@model EVWarrantyManagement.Pages.Claims.IndexModel
+@using System.Security.Claims
+@{
+    ViewData["Title"] = "Claims";
+    bool isSCStaff = User.IsInRole("SC Staff");
+    bool isTechnician = User.IsInRole("SC Technician") || (!isSCStaff && User.IsInRole("SC"));
+    bool isEVM = User.IsInRole("EVM Staff") || User.IsInRole("EVM");
+    bool isAdmin = User.IsInRole("Admin");
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="/Index">Dashboard</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Claims</li>
+    </ol>
+    </nav>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Claims</h2>
+    <div class="d-flex align-items-center gap-2">
+        @if (isAdmin)
+        {
+            <a class="btn btn-outline-primary" asp-page="Review">Pending/On Hold</a>
+            <a class="btn btn-outline-secondary" asp-page="Completed">Completed</a>
+            <a class="btn btn-outline-dark" asp-page="Archived">Archived</a>
+        }
+        else if (isEVM)
+        {
+            <a class="btn btn-outline-primary" asp-page="Review">Pending/On Hold</a>
+            <a class="btn btn-outline-secondary" asp-page="Completed">Completed</a>
+            <a class="btn btn-outline-dark" asp-page="Archived">Archived</a>
+        }
+        else if (isTechnician)
+        {
+            <a class="btn btn-outline-success" asp-page="Index" asp-route-status="Completed">Show Completed</a>
+            <a class="btn btn-outline-dark" asp-page="Archived">My Archived Claims</a>
+        }
+        else if (isSCStaff)
+        {
+            <a class="btn btn-outline-dark" asp-page="Archived">The order has been corrected</a>
+        }
+        <form method="get" class="d-flex align-items-center gap-2">
+            <input class="form-control" type="search" name="q" value="@Model.Q" placeholder="Search Model or Description" />
+            <select class="form-select" name="status">
+                <option value="">All Statuses</option>
+                @foreach (var s in Model.StatusOptions)
+                {
+                    <option value="@s" selected="@(Model.Status == s ? true : false)">@s</option>
+                }
+            </select>
+            <button class="btn btn-outline-secondary" type="submit">Filter</button>
+        </form>
+        @if (isSCStaff)
+        {
+            <a class="btn btn-primary" asp-page="Create"><i class="bi bi-plus-lg me-1"></i> New Claim</a>
+        }
+    </div>
+</div>
+
+@if (TempData["Success"] is string sMsg)
+{
+    <div class="alert alert-success">@sMsg</div>
+}
+@if (TempData["Error"] is string eMsg)
+{
+    <div class="alert alert-danger">@eMsg</div>
+}
+
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>ClaimID</th>
+                <th>Model</th>
+                <th>VIN</th>
+                <th>Description</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var item in Model.Claims)
+        {
+            var status = item.StatusCode ?? string.Empty;
+            bool isCompletedStatus = string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "Archived", StringComparison.OrdinalIgnoreCase);
+            <tr>
+                <td>@item.ClaimId</td>
+                <td>@(item.Vehicle?.Model ?? "N/A")</td>
+                <td>@item.Vin</td>
+                <td class="text-truncate" style="max-width: 360px;">@item.Description</td>
+                <td>@item.DateDiscovered</td>
+                <td><span class="badge bg-secondary">@item.StatusCode</span></td>
+                <td class="text-nowrap">
+                    <a class="btn btn-sm btn-secondary" asp-page="Details" asp-route-id="@item.ClaimId">Details</a>
+                    @if (isTechnician && !isCompletedStatus)
+                    {
+                        <a class="btn btn-sm btn-outline-primary" asp-page="Details" asp-route-id="@item.ClaimId">Add Used Parts</a>
+                        @if (string.Equals(status, "Approved", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <form method="post" asp-page-handler="Start" class="d-inline-flex align-items-center gap-2">
+                                <input type="hidden" name="claimId" value="@item.ClaimId" />
+                                <input type="text" name="technicianNote" class="form-control form-control-sm" style="max-width: 180px;" placeholder="Repair note" />
+                                <button class="btn btn-sm btn-primary" type="submit">Start Repair</button>
+                            </form>
+                        }
+                        @if (string.Equals(status, "InProgress", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <form method="post" asp-page-handler="Complete" class="d-inline-flex align-items-center gap-2">
+                                <input type="hidden" name="claimId" value="@item.ClaimId" />
+                                <input type="text" name="technicianNote" class="form-control form-control-sm" style="max-width: 180px;" placeholder="Completion note" />
+                                <button class="btn btn-sm btn-success" type="submit">Mark Completed</button>
+                            </form>
+                        }
+                    }
+                    @if (isAdmin && string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <form method="post" asp-page-handler="Archive" class="d-inline">
+                            <input type="hidden" name="claimId" value="@item.ClaimId" />
+                            <button class="btn btn-sm btn-outline-dark" type="submit">Archive</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+

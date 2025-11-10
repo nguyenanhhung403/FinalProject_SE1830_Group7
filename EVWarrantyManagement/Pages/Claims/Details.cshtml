@@ -1,0 +1,184 @@
+@page "{id:int}"
+@model EVWarrantyManagement.Pages.Claims.DetailsModel
+@using System.Security.Claims
+@{
+    ViewData["Title"] = "Claim Details";
+    bool isSCStaff = User.IsInRole("SC Staff");
+    bool isTechnician = User.IsInRole("SC Technician") || (!isSCStaff && User.IsInRole("SC"));
+    bool isEVM = User.IsInRole("EVM Staff") || User.IsInRole("EVM");
+    bool isAdmin = User.IsInRole("Admin");
+    var status = Model.Claim?.StatusCode ?? string.Empty;
+    bool isCompletedStatus = string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "Archived", StringComparison.OrdinalIgnoreCase);
+}
+
+@if (TempData["Success"] is string successMessage)
+{
+    <div class="alert alert-success">@successMessage</div>
+}
+@if (TempData["Error"] is string errorMessage)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<h2 class="mb-3">Claim #@Model.Claim?.ClaimId</h2>
+
+<dl class="row">
+    <dt class="col-sm-3">Model</dt>
+    <dd class="col-sm-9">@Model.Claim?.Vehicle?.Model ?? "N/A"</dd>
+    <dt class="col-sm-3">VIN</dt>
+    <dd class="col-sm-9">@Model.Claim?.Vin</dd>
+    <dt class="col-sm-3">Service Center</dt>
+    <dd class="col-sm-9">@Model.Claim?.ServiceCenter?.Name</dd>
+    <dt class="col-sm-3">Date Discovered</dt>
+    <dd class="col-sm-9">@Model.Claim?.DateDiscovered</dd>
+    <dt class="col-sm-3">Status</dt>
+    <dd class="col-sm-9"><span class="badge bg-secondary">@Model.Claim?.StatusCode</span></dd>
+    <dt class="col-sm-3">Description</dt>
+    <dd class="col-sm-9">@Model.Claim?.Description</dd>
+    @if (!string.IsNullOrWhiteSpace(Model.Claim?.ImageUrl))
+    {
+        <dt class="col-sm-3">Image</dt>
+        <dd class="col-sm-9"><img src="@Model.Claim!.ImageUrl" alt="evidence" class="img-fluid rounded border" style="max-width: 360px;" /></dd>
+    }
+</dl>
+
+<h4>Used Parts</h4>
+<div class="table-responsive">
+    <table class="table table-sm table-striped">
+        <thead>
+            <tr>
+                <th>Part</th>
+                <th>Qty</th>
+                <th>Cost</th>
+                <th>At</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in Model.Claim?.UsedParts ?? Enumerable.Empty<EVWarrantyManagement.BO.Models.UsedPart>())
+            {
+                <tr>
+                    <td>
+                        @if (p.Part is not null)
+                        {
+                            @(string.IsNullOrWhiteSpace(p.Part.PartCode)
+                                ? p.Part.PartName
+                                : $"{p.Part.PartCode} - {p.Part.PartName}")
+                        }
+                        else
+                        {
+                            @($"Part #{p.PartId}")
+                        }
+                    </td>
+                    <td>@p.Quantity</td>
+                    <td>@p.PartCost</td>
+                    <td>@p.CreatedAt</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+ </div>
+
+@if (isTechnician && !isCompletedStatus)
+{
+<h5 class="mt-3">Add Used Part</h5>
+<form method="post" asp-page-handler="AddPart" class="row gy-2 gx-2">
+    <input type="hidden" asp-for="ClaimId" />
+    <div class="col-md-4">
+        <select class="form-select" asp-for="AddPartInput.PartId" id="partSelect">
+            <option value="">-- Select Part --</option>
+            @foreach (var option in Model.PartOptions)
+            {
+                <option value="@option.PartId" data-price="@option.UnitPrice">@option.Display</option>
+            }
+        </select>
+        <span asp-validation-for="AddPartInput.PartId" class="text-danger"></span>
+    </div>
+    <div class="col-md-2">
+        <input class="form-control" asp-for="AddPartInput.Quantity" id="quantityInput" placeholder="Qty" min="1" />
+        <span asp-validation-for="AddPartInput.Quantity" class="text-danger"></span>
+    </div>
+    <div class="col-md-3">
+        <input class="form-control" asp-for="AddPartInput.PartCost" id="costInput" placeholder="Total Cost" step="0.01" min="0" />
+        <span asp-validation-for="AddPartInput.PartCost" class="text-danger"></span>
+    </div>
+    <div class="col-md-2">
+        <button class="btn btn-primary w-100" type="submit">Add</button>
+    </div>
+</form>
+}
+
+<div class="mt-4 d-flex gap-2">
+    <a class="btn btn-secondary" asp-page="Index">Back</a>
+    @if (isEVM)
+    {
+        <form method="post" asp-page-handler="Approve"><input type="hidden" name="id" value="@Model.ClaimId" /><button class="btn btn-success" type="submit">Approve</button></form>
+        <form method="post" asp-page-handler="Reject"><input type="hidden" name="id" value="@Model.ClaimId" /><button class="btn btn-danger" type="submit">Reject</button></form>
+        <form method="post" asp-page-handler="OnHold"><input type="hidden" name="id" value="@Model.ClaimId" /><button class="btn btn-warning" type="submit">On Hold</button></form>
+    }
+    @if (isTechnician)
+    {
+        if (!isCompletedStatus && string.Equals(status, "Approved", StringComparison.OrdinalIgnoreCase))
+        {
+            <form method="post" asp-page-handler="Start" class="d-flex flex-column flex-sm-row align-items-sm-center gap-2">
+                <input type="hidden" name="id" value="@Model.ClaimId" />
+                <input type="text" name="technicianNote" class="form-control form-control-sm" placeholder="Repair note (optional)" />
+                <button class="btn btn-primary" type="submit">Start Repair</button>
+            </form>
+        }
+        if (string.Equals(status, "InProgress", StringComparison.OrdinalIgnoreCase))
+        {
+            <form method="post" asp-page-handler="Complete" class="d-flex flex-column flex-sm-row align-items-sm-center gap-2">
+                <input type="hidden" name="id" value="@Model.ClaimId" />
+                <input type="text" name="technicianNote" class="form-control form-control-sm" placeholder="Completion note (optional)" />
+                <button class="btn btn-success" type="submit">Mark Completed</button>
+            </form>
+        }
+    }
+    @if (isAdmin && string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase))
+    {
+        <form method="post" asp-page-handler="Archive"><input type="hidden" name="id" value="@Model.ClaimId" /><button class="btn btn-outline-dark" type="submit">Archive</button></form>
+    }
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            const partSelect = document.getElementById('partSelect');
+            const qtyInput = document.getElementById('quantityInput');
+            const costInput = document.getElementById('costInput');
+
+            function sanitizeQuantity() {
+                let qty = parseInt(qtyInput?.value, 10);
+                if (isNaN(qty) || qty < 1) {
+                    qty = 1;
+                }
+                if (qtyInput) {
+                    qtyInput.value = qty;
+                }
+                return qty;
+            }
+
+            function updateCost() {
+                const option = partSelect?.selectedOptions?.[0];
+                const price = option ? parseFloat(option.dataset.price || '0') : 0;
+                const qty = sanitizeQuantity();
+
+                if (!costInput) return;
+                if (!price) {
+                    if (!costInput.value) {
+                        costInput.value = '';
+                    }
+                    return;
+                }
+
+                const total = price * qty;
+                costInput.value = total.toFixed(2);
+            }
+
+            partSelect?.addEventListener('change', updateCost);
+            qtyInput?.addEventListener('input', updateCost);
+        })();
+    </script>
+}
+

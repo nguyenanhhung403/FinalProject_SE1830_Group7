@@ -1,0 +1,97 @@
+@page
+@model EVWarrantyManagement.Pages.Reports.IndexModel
+@{
+    ViewData["Title"] = "Reports";
+}
+
+<h2 class="mb-3">Dashboard</h2>
+
+@if (TempData["Success"] is string sMsg)
+{
+    <div class="alert alert-success">@sMsg</div>
+}
+@if (TempData["Error"] is string eMsg)
+{
+    <div class="alert alert-danger">@eMsg</div>
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted">Total Claims</div>
+                <div class="display-6">@Model.TotalClaims</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted">Pending</div>
+                <div class="display-6">@Model.GetStatus("Pending")</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted">Completed</div>
+                <div class="display-6">@Model.GetStatus("Completed")</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted">Claims by Status</div>
+                <table class="table table-sm mb-0">
+                    @foreach (var kv in Model.ByStatus)
+                    {
+                        <tr><td>@kv.Key</td><td class="text-end">@kv.Value</td></tr>
+                    }
+                </table>
+            </div>
+        </div>
+    </div>
+ </div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted">Claims by Model</div>
+                <table class="table table-sm mb-0">
+                    @foreach (var kv in Model.ByModel)
+                    {
+                        <tr><td>@kv.Key</td><td class="text-end">@kv.Value</td></tr>
+                    }
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <div class="text-muted">Claims by Month (@Model.Year)</div>
+                <table class="table table-sm mb-0">
+                    @foreach (var kv in Model.ByMonth)
+                    {
+                        <tr><td>@kv.Key</td><td class="text-end">@kv.Value</td></tr>
+                    }
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (User.IsInRole("Admin"))
+{
+    <div class="mt-3 d-flex gap-2">
+        <form method="post" asp-page-handler="ExportCsv"><button class="btn btn-outline-primary" type="submit">Export to Excel (CSV)</button></form>
+        <form method="post" asp-page-handler="ExportPdf"><button class="btn btn-outline-secondary" type="submit">Export to PDF</button></form>
+    </div>
+}
+

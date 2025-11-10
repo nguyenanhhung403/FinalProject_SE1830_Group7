@@ -1,0 +1,58 @@
+@page
+@model EVWarrantyManagement.Pages.Claims.ArchivedModel
+@{
+    ViewData["Title"] = "Archived Claims";
+    var role = Model.PrimaryRole;
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="/Dashboard/Index">Dashboard</a></li>
+        <li class="breadcrumb-item"><a asp-page="/Claims/Index">Claims</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Archived</li>
+    </ol>
+</nav>
+
+<h2 class="mb-3">Archived Claims</h2>
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>HistoryID</th>
+                <th>ClaimID</th>
+                <th>Model</th>
+                <th>VIN</th>
+                <th>Service Center</th>
+                <th>Completed By</th>
+                <th>Completed Date</th>
+                <th>Archived At</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var history in Model.Histories)
+        {
+            <tr>
+                <td>@history.HistoryId</td>
+                <td>@history.ClaimId</td>
+                <td>@(history.Vehicle?.Model ?? "N/A")</td>
+                <td>@history.Vin</td>
+                <td>@(history.ServiceCenter?.Name ?? $"#{history.ServiceCenterId}")</td>
+                <td>@(history.CompletedByUser?.FullName ?? $"User #{history.CompletedByUserId}")</td>
+                <td>@history.CompletionDate</td>
+                <td>@history.ArchivedAt</td>
+                <td class="text-nowrap">
+                    <a class="btn btn-sm btn-outline-secondary" asp-page="ArchivedDetail" asp-route-id="@history.HistoryId">View</a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+

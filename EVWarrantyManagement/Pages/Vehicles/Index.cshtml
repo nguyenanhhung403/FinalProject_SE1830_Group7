@@ -1,0 +1,57 @@
+@page
+@model EVWarrantyManagement.Pages.Vehicles.IndexModel
+@{
+    ViewData["Title"] = "Vehicles";
+}
+
+<h2 class="mb-3 d-flex justify-content-between align-items-center">
+    <span>Vehicles</span>
+    <form method="get" class="d-flex" role="search">
+        <input class="form-control me-2" type="search" name="q" value="@Model.Q" placeholder="Search VIN or Model" />
+        <button class="btn btn-outline-secondary" type="submit">Search</button>
+    </form>
+</h2>
+
+@if (TempData["Success"] is string sMsg)
+{
+    <div class="alert alert-success">@sMsg</div>
+}
+@if (TempData["Error"] is string eMsg)
+{
+    <div class="alert alert-danger">@eMsg</div>
+}
+
+<div class="d-flex justify-content-between mb-3">
+    <div></div>
+    <a class="btn btn-primary" asp-page="Create">Create</a>
+    </div>
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>VIN</th>
+                <th>Model</th>
+                <th>Customer</th>
+                <th>Registration</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var v in Model.Vehicles)
+        {
+            <tr>
+                <td>@v.Vin</td>
+                <td>@v.Model</td>
+                <td>@v.Customer?.FullName</td>
+                <td>@v.RegistrationNumber</td>
+                <td class="text-nowrap">
+                    <a class="btn btn-sm btn-secondary" asp-page="Edit" asp-route-id="@v.VehicleId">Edit</a>
+                    <a class="btn btn-sm btn-danger" asp-page="Delete" asp-route-id="@v.VehicleId">Delete</a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+

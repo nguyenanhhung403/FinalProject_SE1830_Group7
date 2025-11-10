@@ -1,0 +1,35 @@
+@page
+@model EVWarrantyManagement.Pages.Parts.CreateModel
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@{
+    ViewData["Title"] = "Create Part";
+}
+
+<h2 class="mb-3">Create Part</h2>
+
+<form method="post" class="row g-3">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="col-md-4">
+        <label asp-for="Input.PartCode" class="form-label"></label>
+        <input asp-for="Input.PartCode" class="form-control" />
+        <span asp-validation-for="Input.PartCode" class="text-danger"></span>
+    </div>
+    <div class="col-md-8">
+        <label asp-for="Input.PartName" class="form-label"></label>
+        <input asp-for="Input.PartName" class="form-control" />
+        <span asp-validation-for="Input.PartName" class="text-danger"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Input.UnitPrice" class="form-label"></label>
+        <input asp-for="Input.UnitPrice" class="form-control" />
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary">Create</button>
+        <a class="btn btn-secondary" asp-page="Index">Back</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

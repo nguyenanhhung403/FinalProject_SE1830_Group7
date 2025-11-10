@@ -1,0 +1,50 @@
+@page
+@model EVWarrantyManagement.Pages.Customers.IndexModel
+@{
+    ViewData["Title"] = "Customers";
+}
+
+<h2 class="mb-3">Customers</h2>
+
+@if (TempData["Success"] is string sMsg)
+{
+    <div class="alert alert-success">@sMsg</div>
+}
+@if (TempData["Error"] is string eMsg)
+{
+    <div class="alert alert-danger">@eMsg</div>
+}
+
+<div class="d-flex justify-content-between mb-3">
+    <div></div>
+    <a class="btn btn-primary" asp-page="Create">Create</a>
+    </div>
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var c in Model.Customers)
+        {
+            <tr>
+                <td>@c.FullName</td>
+                <td>@c.Email</td>
+                <td>@c.Phone</td>
+                <td class="text-nowrap">
+                    <a class="btn btn-sm btn-secondary" asp-page="Edit" asp-route-id="@c.CustomerId">Edit</a>
+                    <a class="btn btn-sm btn-danger" asp-page="Delete" asp-route-id="@c.CustomerId">Delete</a>
+                    <a class="btn btn-sm btn-outline-primary" asp-page="/Vehicles/Index" asp-route-customerId="@c.CustomerId">Vehicles</a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+

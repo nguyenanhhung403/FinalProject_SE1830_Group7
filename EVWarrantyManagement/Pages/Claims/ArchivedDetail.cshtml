@@ -1,0 +1,101 @@
+@page "{id:int}"
+@using System.Linq
+@model EVWarrantyManagement.Pages.Claims.ArchivedDetailModel
+@{
+    ViewData["Title"] = $"Archived Claim #{Model.History?.ClaimId}";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="/Dashboard/Index">Dashboard</a></li>
+        <li class="breadcrumb-item"><a asp-page="/Claims/Archived">Archived Claims</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Detail</li>
+    </ol>
+</nav>
+
+@if (Model.History is null)
+{
+    <div class="alert alert-danger">Archived claim not found.</div>
+    return;
+}
+
+<h2 class="mb-3">Claim #@Model.History.ClaimId</h2>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <dl class="row">
+            <dt class="col-sm-4">Model</dt>
+            <dd class="col-sm-8">@((Model.History.Vehicle?.Model) ?? "N/A")</dd>
+            <dt class="col-sm-4">VIN</dt>
+            <dd class="col-sm-8">@Model.History.Vin</dd>
+            <dt class="col-sm-4">Service Center</dt>
+            <dd class="col-sm-8">@((Model.History.ServiceCenter?.Name) ?? $"#{Model.History.ServiceCenterId}")</dd>
+            <dt class="col-sm-4">Completed By</dt>
+            <dd class="col-sm-8">@((Model.History.CompletedByUser?.FullName) ?? $"User #{Model.History.CompletedByUserId}")</dd>
+        </dl>
+    </div>
+    <div class="col-md-6">
+        <dl class="row">
+            <dt class="col-sm-4">Completion Date</dt>
+            <dd class="col-sm-8">@Model.History.CompletionDate</dd>
+            <dt class="col-sm-4">Total Cost</dt>
+            <dd class="col-sm-8">@Model.History.TotalCost?.ToString("C")</dd>
+            <dt class="col-sm-4">Archived At</dt>
+            <dd class="col-sm-8">@Model.History.ArchivedAt</dd>
+        </dl>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.History.Note))
+{
+    <div class="mb-4">
+        <h5>Note</h5>
+        <p>@Model.History.Note</p>
+    </div>
+}
+
+<h5>Used Parts</h5>
+@if (Model.UsedParts.Any())
+{
+    <div class="table-responsive mb-4">
+        <table class="table table-striped table-sm">
+            <thead>
+                <tr>
+                    <th>Part</th>
+                    <th>Quantity</th>
+                    <th>Cost</th>
+                    <th>Recorded At</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var part in Model.UsedParts)
+            {
+                <tr>
+                    <td>
+                        @if (part.Part is not null)
+                        {
+                            @(string.IsNullOrWhiteSpace(part.Part.PartCode)
+                                ? part.Part.PartName
+                                : $"{part.Part.PartCode} - {part.Part.PartName}")
+                        }
+                        else
+                        {
+                            @($"Part #{part.PartId}")
+                        }
+                    </td>
+                    <td>@part.Quantity</td>
+                    <td>@part.PartCost</td>
+                    <td>@part.CreatedAt</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-muted">No parts were recorded for this claim.</p>
+}
+
+<a class="btn btn-secondary" asp-page="/Claims/Archived">Back</a>
+

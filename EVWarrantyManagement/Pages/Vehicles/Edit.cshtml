@@ -1,0 +1,39 @@
+@page "{id:int}"
+@model EVWarrantyManagement.Pages.Vehicles.EditModel
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@{
+    ViewData["Title"] = "Edit Vehicle";
+}
+
+<h2 class="mb-3">Edit Vehicle</h2>
+
+<form method="post" class="row g-3">
+    <input type="hidden" asp-for="Id" />
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="col-md-6">
+        <label asp-for="Input.Vin" class="form-label"></label>
+        <input asp-for="Input.Vin" class="form-control" />
+        <span asp-validation-for="Input.Vin" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Input.Model" class="form-label"></label>
+        <input asp-for="Input.Model" class="form-control" />
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Input.CustomerId" class="form-label"></label>
+        <input asp-for="Input.CustomerId" class="form-control" />
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Input.RegistrationNumber" class="form-label"></label>
+        <input asp-for="Input.RegistrationNumber" class="form-control" />
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a class="btn btn-secondary" asp-page="Index">Back</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

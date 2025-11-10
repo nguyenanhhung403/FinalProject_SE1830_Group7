@@ -1,0 +1,54 @@
+@page
+@model EVWarrantyManagement.Pages.Claims.CreateModel
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Policy="RequireSCStaff")]
+@{
+    ViewData["Title"] = "Create Claim";
+}
+
+<h2 class="mb-3">Create Claim</h2>
+
+<form method="post" enctype="multipart/form-data" class="row g-3">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="col-md-6">
+        <label asp-for="Input.VehicleId" class="form-label"></label>
+        <select class="form-select" asp-for="Input.VehicleId" id="vehicleSelect">
+            <option value="">-- Select Vehicle Model --</option>
+            @foreach (var vehicle in Model.VehicleOptions)
+            {
+                <option value="@vehicle.VehicleId" data-vin="@vehicle.Vin">@vehicle.Display</option>
+            }
+        </select>
+        <div class="form-text text-muted">Vehicle VIN will be linked automatically.</div>
+        <span asp-validation-for="Input.VehicleId" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Input.ServiceCenterId" class="form-label"></label>
+        <select asp-for="Input.ServiceCenterId" class="form-select" asp-items="Model.ServiceCenterOptions">
+            <option value="">-- Select Service Center --</option>
+        </select>
+        <span asp-validation-for="Input.ServiceCenterId" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Input.DateDiscovered" class="form-label"></label>
+        <input asp-for="Input.DateDiscovered" class="form-control" type="date" />
+        <span asp-validation-for="Input.DateDiscovered" class="text-danger"></span>
+    </div>
+    <div class="col-12">
+        <label asp-for="Input.Description" class="form-label"></label>
+        <textarea asp-for="Input.Description" class="form-control" rows="4"></textarea>
+        <span asp-validation-for="Input.Description" class="text-danger"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="Image" class="form-label">Image (optional)</label>
+        <input asp-for="Image" type="file" class="form-control" />
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary">Create</button>
+        <a asp-page="Index" class="btn btn-secondary">Back</a>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+

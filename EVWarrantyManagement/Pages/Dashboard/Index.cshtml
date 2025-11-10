@@ -1,0 +1,71 @@
+@page
+@model EVWarrantyManagement.Pages.Dashboard.IndexModel
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Policy="RequireEVM")]
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Claims Dashboard</h2>
+    <div class="btn-group">
+        @if (User.IsInRole("SC Staff"))
+        {
+            <a class="btn btn-outline-dark" asp-page="/Claims/Archived">The order has been corrected</a>
+        }
+        else
+        {
+            <a class="btn btn-outline-primary" asp-page="/Claims/Review">Review Pending</a>
+            <a class="btn btn-outline-secondary" asp-page="/Claims/Completed">Completed</a>
+            <a class="btn btn-outline-dark" asp-page="/Claims/Archived">Archived</a>
+        }
+    </div>
+</div>
+
+@if (TempData["Success"] is string success)
+{
+    <div class="alert alert-success">@success</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>ClaimID</th>
+                <th>Model</th>
+                <th>VIN</th>
+                <th>Status</th>
+                <th>Service Center</th>
+                <th>Created</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var claim in Model.AllClaims)
+        {
+            <tr>
+                <td>@claim.ClaimId</td>
+                <td>@(claim.Vehicle?.Model ?? "N/A")</td>
+                <td>@claim.Vin</td>
+                <td><span class="badge bg-secondary">@claim.StatusCode</span></td>
+                <td>@claim.ServiceCenter?.Name</td>
+                <td>@claim.CreatedAt</td>
+                <td class="text-nowrap">
+                    <a class="btn btn-sm btn-outline-primary" asp-page="Claims/Detail" asp-route-id="@claim.ClaimId">Detail</a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+

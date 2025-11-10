@@ -1,0 +1,64 @@
+@page
+@model EVWarrantyManagement.Pages.Claims.CompletedModel
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Policy="RequireEVM")]
+@{
+    ViewData["Title"] = "Completed Claims";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="/Dashboard/Index">Dashboard</a></li>
+        <li class="breadcrumb-item"><a asp-page="/Claims/Index">Claims</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Completed</li>
+    </ol>
+</nav>
+
+<h2 class="mb-3">Completed Claims</h2>
+
+@if (TempData["Success"] is string success)
+{
+    <div class="alert alert-success">@success</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<div class="table-responsive">
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>ClaimID</th>
+                <th>Model</th>
+                <th>VIN</th>
+                <th>Service Center</th>
+                <th>Completed Date</th>
+                <th>Technician</th>
+                <th>Total Cost</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var claim in Model.CompletedClaims)
+        {
+            <tr>
+                <td>@claim.ClaimId</td>
+                <td>@(claim.Vehicle?.Model ?? "N/A")</td>
+                <td>@claim.Vin</td>
+                <td>@claim.ServiceCenter?.Name</td>
+                <td>@claim.CompletionDate</td>
+                <td>@claim.Technician?.FullName</td>
+                <td>@claim.TotalCost?.ToString("C")</td>
+                <td class="text-nowrap">
+                    <a class="btn btn-sm btn-secondary" asp-page="Details" asp-route-id="@claim.ClaimId">Details</a>
+                    <form method="post" asp-page-handler="Archive" class="d-inline">
+                        <input type="hidden" name="claimId" value="@claim.ClaimId" />
+                        <button class="btn btn-sm btn-outline-dark" type="submit">Archive</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+

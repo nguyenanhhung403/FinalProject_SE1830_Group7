@@ -1,0 +1,49 @@
+@page
+@model EVWarrantyManagement.Pages.Parts.IndexModel
+@{
+    ViewData["Title"] = "Parts";
+}
+
+<h2 class="mb-3">Parts</h2>
+
+@if (TempData["Success"] is string sMsg)
+{
+    <div class="alert alert-success">@sMsg</div>
+}
+@if (TempData["Error"] is string eMsg)
+{
+    <div class="alert alert-danger">@eMsg</div>
+}
+
+<div class="d-flex justify-content-between mb-3">
+    <div></div>
+    <a class="btn btn-primary" asp-page="Create">Create</a>
+    </div>
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var p in Model.Parts)
+        {
+            <tr>
+                <td>@p.PartCode</td>
+                <td>@p.PartName</td>
+                <td>@p.UnitPrice</td>
+                <td class="text-nowrap">
+                    <a class="btn btn-sm btn-secondary" asp-page="Edit" asp-route-id="@p.PartId">Edit</a>
+                    <a class="btn btn-sm btn-danger" asp-page="Delete" asp-route-id="@p.PartId">Delete</a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+

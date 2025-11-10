@@ -1,0 +1,16 @@
+@page "{id:int}"
+@model EVWarrantyManagement.Pages.Vehicles.DeleteModel
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+@{
+    ViewData["Title"] = "Delete Vehicle";
+}
+
+<h2 class="mb-3">Delete Vehicle</h2>
+
+<form method="post">
+    <input type="hidden" asp-for="Id" />
+    <p>Are you sure you want to delete this vehicle?</p>
+    <button class="btn btn-danger" type="submit">Delete</button>
+    <a class="btn btn-secondary" asp-page="Index">Cancel</a>
+ </form>
+
