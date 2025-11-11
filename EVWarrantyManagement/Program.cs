@@ -11,6 +11,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 
+// SignalR
+builder.Services.AddSignalR();
+
 // DbContext
 builder.Services.AddDbContext<EVWarrantyManagementContext>(options =>
     options.UseSqlServer(
@@ -22,6 +25,7 @@ builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
 builder.Services.AddScoped<IPartRepository, PartRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<IWarrantyClaimRepository, WarrantyClaimRepository>();
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 
 // BLL services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -30,6 +34,8 @@ builder.Services.AddScoped<IPartService, PartService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IWarrantyClaimService, WarrantyClaimService>();
 builder.Services.AddScoped<IReportingService, ReportingService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
 
 // Cookie authentication
 builder.Services
@@ -49,6 +55,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("RequireTechnician", policy => policy.RequireRole("SC Technician", "SC", "Admin"));
     options.AddPolicy("RequireEVM", policy => policy.RequireRole("EVM Staff", "EVM", "Admin"));
     options.AddPolicy("RequireAdmin", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
 });
 
 var app = builder.Build();
@@ -100,5 +107,9 @@ app.MapGet("/", async context =>
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
+
+// Map SignalR hubs
+app.MapHub<EVWarrantyManagement.UI.Hubs.NotificationHub>("/hubs/notification");
+app.MapHub<EVWarrantyManagement.UI.Hubs.ChatHub>("/hubs/chat");
 
 app.Run();
