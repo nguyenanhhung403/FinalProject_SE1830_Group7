@@ -7,8 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.SignalR;
-using EVWarrantyManagement.UI.Hubs;
 
 namespace EVWarrantyManagement.Pages.Claims;
 
@@ -19,20 +17,13 @@ public class CreateModel : PageModel
     private readonly IWebHostEnvironment _env;
     private readonly IVehicleService _vehicleService;
     private readonly EVWarrantyManagement.DAL.EVWarrantyManagementContext _db;
-    private readonly IHubContext<NotificationHub> _notificationHub;
 
-    public CreateModel(
-        IWarrantyClaimService claimService,
-        IWebHostEnvironment env,
-        IVehicleService vehicleService,
-        EVWarrantyManagement.DAL.EVWarrantyManagementContext db,
-        IHubContext<NotificationHub> notificationHub)
+    public CreateModel(IWarrantyClaimService claimService, IWebHostEnvironment env, IVehicleService vehicleService, EVWarrantyManagement.DAL.EVWarrantyManagementContext db)
     {
         _claimService = claimService;
         _env = env;
         _vehicleService = vehicleService;
         _db = db;
-        _notificationHub = notificationHub;
     }
 
     [BindProperty]
@@ -108,54 +99,7 @@ public class CreateModel : PageModel
         };
 
         var userId = GetUserId();
-        // CreateClaimAsync returns the created claim with the ClaimId populated
-        var createdClaim = await _claimService.CreateClaimAsync(claim, userId, "Claim created");
-
-        // Fetch fresh claim data with relationships for the notification
-        // Re-query to get Vehicle and ServiceCenter navigation properties
-        var claimWithDetails = await _db.WarrantyClaims
-            .AsNoTracking()
-            .Include(c => c.Vehicle)
-            .Include(c => c.ServiceCenter)
-            .Where(c => c.ClaimId == createdClaim.ClaimId)
-            .FirstOrDefaultAsync();
-
-        // DEBUG: Log what we're about to send
-        Console.WriteLine($"[SignalR] Created Claim ID: {createdClaim?.ClaimId}");
-        Console.WriteLine($"[SignalR] Claim VIN: {createdClaim?.Vin}");
-        Console.WriteLine($"[SignalR] Vehicle Model: {claimWithDetails?.Vehicle?.Model}");
-        Console.WriteLine($"[SignalR] Service Center: {claimWithDetails?.ServiceCenter?.Name}");
-
-        if (createdClaim != null && claimWithDetails != null)
-        {
-            // Send real-time notification to ALL users (including SC Staff who created it)
-            var notificationData = new
-            {
-                ClaimId = createdClaim.ClaimId,
-                Vin = createdClaim.Vin,
-                VehicleModel = claimWithDetails.Vehicle?.Model ?? "N/A",
-                ServiceCenterName = claimWithDetails.ServiceCenter?.Name ?? "Unknown",
-                Description = createdClaim.Description,
-                DateDiscovered = createdClaim.DateDiscovered.ToString("MM/dd/yyyy"),
-                StatusCode = createdClaim.StatusCode ?? "Pending",
-                Message = $"New warranty claim #{createdClaim.ClaimId} created for {createdClaim.Vin}",
-                Type = "new_claim"
-            };
-
-            // DEBUG: Log notification data
-            Console.WriteLine($"[SignalR] Sending notification: ClaimId={notificationData.ClaimId}, Vin={notificationData.Vin}, Model={notificationData.VehicleModel}");
-
-            // Notify EVM Staff, Admin, AND SC Staff (so creator sees it too)
-            await _notificationHub.Clients.Groups("EVM Staff", "Admin", "SC Staff", "SC")
-                .SendAsync("ReceiveNewClaim", notificationData);
-
-            Console.WriteLine("[SignalR] Notification sent successfully");
-        }
-        else
-        {
-            Console.WriteLine($"[SignalR] ERROR: createdClaim is null: {createdClaim == null}, claimWithDetails is null: {claimWithDetails == null}");
-        }
-
+        await _claimService.CreateClaimAsync(claim, userId, "Claim created");
         TempData["Success"] = "Claim created successfully.";
         return RedirectToPage("Index");
     }

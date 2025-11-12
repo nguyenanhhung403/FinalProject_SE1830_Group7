@@ -20,9 +20,11 @@ public class WarrantyClaimRepository : IWarrantyClaimRepository
             .AsNoTracking()
             .Include(c => c.ServiceCenter)
             .Include(c => c.Vehicle)
+                .ThenInclude(v => v.Customer)
             .Include(c => c.CreatedByUser)
             .Include(c => c.Technician)
             .Include(c => c.UsedParts)
+                .ThenInclude(up => up.Part)
             .Include(c => c.ClaimStatusLogs)
             .FirstOrDefaultAsync(c => c.ClaimId == claimId, cancellationToken);
     }
