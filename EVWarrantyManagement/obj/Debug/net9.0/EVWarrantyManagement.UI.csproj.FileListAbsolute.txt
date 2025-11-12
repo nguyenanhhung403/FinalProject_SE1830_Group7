@@ -158,4 +158,5 @@ E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\obj\Debug\net9.0\EVWar
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\obj\Debug\net9.0\ref\EVWarrantyManagement.UI.dll
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\bin\Debug\net9.0\EVWarrantyManagement.BO.dll
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\bin\Debug\net9.0\EVWarrantyManagement.BO.pdb
+E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\obj\Debug\net9.0\EVWarrantyManagement.UI.sourcelink.json
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\obj\Debug\net9.0\staticwebassets.upToDateCheck.txt

@@ -1,10 +1,14 @@
+using System;
 using EVWarrantyManagement.BLL.Interfaces;
 using EVWarrantyManagement.BLL.Services;
+using EVWarrantyManagement.Configuration;
 using EVWarrantyManagement.DAL;
 using EVWarrantyManagement.DAL.Interfaces;
 using EVWarrantyManagement.DAL.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +34,25 @@ builder.Services.AddScoped<IPartService, PartService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IWarrantyClaimService, WarrantyClaimService>();
 builder.Services.AddScoped<IReportingService, ReportingService>();
+
+builder.Services.Configure<N8nSettings>(builder.Configuration.GetSection("N8n"));
+builder.Services.AddHttpClient("n8n", (serviceProvider, client) =>
+{
+    var settings = serviceProvider.GetRequiredService<IOptions<N8nSettings>>().Value;
+    if (!string.IsNullOrWhiteSpace(settings.BaseUrl) &&
+        Uri.TryCreate(settings.BaseUrl, UriKind.Absolute, out var baseUri))
+    {
+        client.BaseAddress = baseUri;
+    }
+
+    if (!string.IsNullOrWhiteSpace(settings.ApiKey))
+    {
+        if (!client.DefaultRequestHeaders.Contains("X-N8N-API-KEY"))
+        {
+            client.DefaultRequestHeaders.Add("X-N8N-API-KEY", settings.ApiKey);
+        }
+    }
+});
 
 // Cookie authentication
 builder.Services

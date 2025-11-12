@@ -15,3 +15,4 @@ E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement.DAL\obj\Debug\net9.0\r
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement.DAL\bin\Debug\net9.0\EVWarrantyManagement.BO.dll
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement.DAL\bin\Debug\net9.0\EVWarrantyManagement.BO.pdb
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement.DAL\obj\Debug\net9.0\EVWarran.6603B14F.Up2Date
+E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement.DAL\obj\Debug\net9.0\EVWarrantyManagement.DAL.sourcelink.json
