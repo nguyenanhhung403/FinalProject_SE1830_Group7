@@ -1,19 +1,18 @@
-using System;
 using EVWarrantyManagement.BLL.Interfaces;
 using EVWarrantyManagement.BLL.Services;
-using EVWarrantyManagement.Configuration;
 using EVWarrantyManagement.DAL;
 using EVWarrantyManagement.DAL.Interfaces;
 using EVWarrantyManagement.DAL.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+
+// SignalR
+builder.Services.AddSignalR();
 
 // DbContext
 builder.Services.AddDbContext<EVWarrantyManagementContext>(options =>
@@ -26,6 +25,7 @@ builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
 builder.Services.AddScoped<IPartRepository, PartRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<IWarrantyClaimRepository, WarrantyClaimRepository>();
+builder.Services.AddScoped<IMessageRepository, MessageRepository>();
 
 // BLL services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -34,25 +34,8 @@ builder.Services.AddScoped<IPartService, PartService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IWarrantyClaimService, WarrantyClaimService>();
 builder.Services.AddScoped<IReportingService, ReportingService>();
-
-builder.Services.Configure<N8nSettings>(builder.Configuration.GetSection("N8n"));
-builder.Services.AddHttpClient("n8n", (serviceProvider, client) =>
-{
-    var settings = serviceProvider.GetRequiredService<IOptions<N8nSettings>>().Value;
-    if (!string.IsNullOrWhiteSpace(settings.BaseUrl) &&
-        Uri.TryCreate(settings.BaseUrl, UriKind.Absolute, out var baseUri))
-    {
-        client.BaseAddress = baseUri;
-    }
-
-    if (!string.IsNullOrWhiteSpace(settings.ApiKey))
-    {
-        if (!client.DefaultRequestHeaders.Contains("X-N8N-API-KEY"))
-        {
-            client.DefaultRequestHeaders.Add("X-N8N-API-KEY", settings.ApiKey);
-        }
-    }
-});
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IMessageService, MessageService>();
 
 // Cookie authentication
 builder.Services
@@ -72,6 +55,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("RequireTechnician", policy => policy.RequireRole("SC Technician", "SC", "Admin"));
     options.AddPolicy("RequireEVM", policy => policy.RequireRole("EVM Staff", "EVM", "Admin"));
     options.AddPolicy("RequireAdmin", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
 });
 
 var app = builder.Build();
@@ -123,5 +107,9 @@ app.MapGet("/", async context =>
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
+
+// Map SignalR hubs
+app.MapHub<EVWarrantyManagement.UI.Hubs.NotificationHub>("/hubs/notification");
+app.MapHub<EVWarrantyManagement.UI.Hubs.ChatHub>("/hubs/chat");
 
 app.Run();
