@@ -1,0 +1,56 @@
+# ==========================
+# Visual Studio & .NET ignore
+# ==========================
+
+# User-specific files
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+bin/
+obj/
+Debug/
+Release/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]uild/
+[Ll]og/
+
+# Visual Studio cache
+.vs/
+*.vscode/
+*.cache
+*.db
+*.v2
+
+# Backup & temp
+*_i.c
+*_p.c
+*.ilk
+*.meta
+*.obj
+*.pch
+*.pdb
+*.tmp
+*.log
+*.bak
+*.backup.json
+
+# Auto-generated files
+*.dll
+*.exe
+*.mdb
+*.manifest
+*.appx
+*.dbmdl
+
+# Others
+*.ncb
+*.sdf
+*.opensdf
+*.tlog
