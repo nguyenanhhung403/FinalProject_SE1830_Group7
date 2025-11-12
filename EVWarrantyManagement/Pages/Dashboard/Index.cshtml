@@ -5,36 +5,55 @@
     ViewData["Title"] = "Dashboard";
 }
 
-<nav aria-label="breadcrumb">
+<nav aria-label="breadcrumb" class="mb-4">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item"><a href="/"><i class="bi bi-house me-1"></i>Home</a></li>
         <li class="breadcrumb-item active" aria-current="page">Dashboard</li>
     </ol>
 </nav>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">Claims Dashboard</h2>
-    <div class="btn-group">
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">
+            <i class="bi bi-speedometer2 me-2"></i>Claims Dashboard
+        </h2>
+        <p class="text-muted mb-0">Overview of all warranty claims</p>
+    </div>
+    <div class="btn-group shadow-sm">
         @if (User.IsInRole("SC Staff"))
         {
-            <a class="btn btn-outline-dark" asp-page="/Claims/Archived">The order has been corrected</a>
+            <a class="btn btn-outline-dark" asp-page="/Claims/Archived">
+                <i class="bi bi-archive me-1"></i>The order has been corrected
+            </a>
         }
         else
         {
-            <a class="btn btn-outline-primary" asp-page="/Claims/Review">Review Pending</a>
-            <a class="btn btn-outline-secondary" asp-page="/Claims/Completed">Completed</a>
-            <a class="btn btn-outline-dark" asp-page="/Claims/Archived">Archived</a>
+            <a class="btn btn-outline-primary" asp-page="/Claims/Review">
+                <i class="bi bi-clock-history me-1"></i>Review Pending
+            </a>
+            <a class="btn btn-outline-success" asp-page="/Claims/Completed">
+                <i class="bi bi-check-circle me-1"></i>Completed
+            </a>
+            <a class="btn btn-outline-dark" asp-page="/Claims/Archived">
+                <i class="bi bi-archive me-1"></i>Archived
+            </a>
         }
     </div>
 </div>
 
 @if (TempData["Success"] is string success)
 {
-    <div class="alert alert-success">@success</div>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>@success
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 @if (TempData["Error"] is string error)
 {
-    <div class="alert alert-danger">@error</div>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>@error
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 
 <div class="table-responsive">
@@ -53,15 +72,38 @@
         <tbody>
         @foreach (var claim in Model.AllClaims)
         {
+            var status = claim.StatusCode ?? string.Empty;
+            var statusClass = status.ToLower() switch {
+                "pending" => "status-pending",
+                "approved" => "status-approved",
+                "rejected" => "status-rejected",
+                "inprogress" => "status-inprogress",
+                "completed" => "status-completed",
+                "archived" => "status-archived",
+                "onhold" => "status-onhold",
+                "closed" => "status-closed",
+                _ => "bg-secondary"
+            };
             <tr>
-                <td>@claim.ClaimId</td>
-                <td>@(claim.Vehicle?.Model ?? "N/A")</td>
-                <td>@claim.Vin</td>
-                <td><span class="badge bg-secondary">@claim.StatusCode</span></td>
-                <td>@claim.ServiceCenter?.Name</td>
-                <td>@claim.CreatedAt</td>
+                <td><strong>#@claim.ClaimId</strong></td>
+                <td>
+                    <i class="bi bi-car-front text-primary me-1"></i>
+                    @(claim.Vehicle?.Model ?? "N/A")
+                </td>
+                <td><code>@claim.Vin</code></td>
+                <td><span class="badge @statusClass">@claim.StatusCode</span></td>
+                <td>
+                    <i class="bi bi-building text-muted me-1"></i>
+                    @claim.ServiceCenter?.Name
+                </td>
+                <td>
+                    <i class="bi bi-calendar3 me-1 text-muted"></i>
+                    @claim.CreatedAt.ToString("MM/dd/yyyy")
+                </td>
                 <td class="text-nowrap">
-                    <a class="btn btn-sm btn-outline-primary" asp-page="Claims/Detail" asp-route-id="@claim.ClaimId">Detail</a>
+                    <a class="btn btn-sm btn-outline-primary" asp-page="Claims/Detail" asp-route-id="@claim.ClaimId">
+                        <i class="bi bi-eye me-1"></i>Detail
+                    </a>
                 </td>
             </tr>
         }

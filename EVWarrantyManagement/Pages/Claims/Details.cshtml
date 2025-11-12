@@ -12,44 +12,112 @@
     bool canManageParts = isTechnician && !isCompletedStatus;
 }
 
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="/Claims/Index"><i class="bi bi-house me-1"></i>Claims</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Claim #@Model.Claim?.ClaimId</li>
+    </ol>
+</nav>
+
 @if (TempData["Success"] is string successMessage)
 {
-    <div class="alert alert-success">@successMessage</div>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>@successMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 @if (TempData["Warning"] is string warningMessage)
 {
-    <div class="alert alert-warning">@warningMessage</div>
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-circle me-2"></i>@warningMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 @if (TempData["Error"] is string errorMessage)
 {
-    <div class="alert alert-danger">@errorMessage</div>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>@errorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 
-<h2 class="mb-3">Claim #@Model.Claim?.ClaimId</h2>
+<div class="mb-4">
+    <h2 class="mb-1">
+        <i class="bi bi-file-earmark-text me-2"></i>Claim #@Model.Claim?.ClaimId
+    </h2>
+    <p class="text-muted mb-0">Warranty claim details and management</p>
+</div>
 
-<dl class="row">
-    <dt class="col-sm-3">Model</dt>
-    <dd class="col-sm-9">@Model.Claim?.Vehicle?.Model ?? "N/A"</dd>
-    <dt class="col-sm-3">VIN</dt>
-    <dd class="col-sm-9">@Model.Claim?.Vin</dd>
-    <dt class="col-sm-3">Service Center</dt>
-    <dd class="col-sm-9">@Model.Claim?.ServiceCenter?.Name</dd>
-    <dt class="col-sm-3">Date Discovered</dt>
-    <dd class="col-sm-9">@Model.Claim?.DateDiscovered</dd>
-    <dt class="col-sm-3">Status</dt>
-    <dd class="col-sm-9"><span class="badge bg-secondary">@Model.Claim?.StatusCode</span></dd>
-    <dt class="col-sm-3">Description</dt>
-    <dd class="col-sm-9">@Model.Claim?.Description</dd>
-    @if (!string.IsNullOrWhiteSpace(Model.Claim?.ImageUrl))
-    {
-        <dt class="col-sm-3">Image</dt>
-        <dd class="col-sm-9"><img src="@Model.Claim!.ImageUrl" alt="evidence" class="img-fluid rounded border" style="max-width: 360px;" /></dd>
-    }
-</dl>
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header gradient-primary">
+        <h5 class="mb-0 text-white">
+            <i class="bi bi-info-circle me-2"></i>Claim Information
+        </h5>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3 d-flex align-items-center">
+                <i class="bi bi-car-front text-primary me-2"></i>Model
+            </dt>
+            <dd class="col-sm-9">@Model.Claim?.Vehicle?.Model ?? "N/A"</dd>
+            <dt class="col-sm-3 d-flex align-items-center">
+                <i class="bi bi-upc-scan text-primary me-2"></i>VIN
+            </dt>
+            <dd class="col-sm-9"><code>@Model.Claim?.Vin</code></dd>
+            <dt class="col-sm-3 d-flex align-items-center">
+                <i class="bi bi-building text-primary me-2"></i>Service Center
+            </dt>
+            <dd class="col-sm-9">@Model.Claim?.ServiceCenter?.Name</dd>
+            <dt class="col-sm-3 d-flex align-items-center">
+                <i class="bi bi-calendar3 text-primary me-2"></i>Date Discovered
+            </dt>
+            <dd class="col-sm-9">@Model.Claim?.DateDiscovered.ToString("MM/dd/yyyy")</dd>
+            <dt class="col-sm-3 d-flex align-items-center">
+                <i class="bi bi-flag text-primary me-2"></i>Status
+            </dt>
+            <dd class="col-sm-9">
+                @{
+                    var claimStatus = Model.Claim?.StatusCode ?? string.Empty;
+                    var statusClass = claimStatus.ToLower() switch {
+                        "pending" => "status-pending",
+                        "approved" => "status-approved",
+                        "rejected" => "status-rejected",
+                        "inprogress" => "status-inprogress",
+                        "completed" => "status-completed",
+                        "archived" => "status-archived",
+                        "onhold" => "status-onhold",
+                        "closed" => "status-closed",
+                        _ => "bg-secondary"
+                    };
+                }
+                <span class="badge @statusClass">@Model.Claim?.StatusCode</span>
+            </dd>
+            <dt class="col-sm-3 d-flex align-items-center">
+                <i class="bi bi-file-text text-primary me-2"></i>Description
+            </dt>
+            <dd class="col-sm-9">@Model.Claim?.Description</dd>
+            @if (!string.IsNullOrWhiteSpace(Model.Claim?.ImageUrl))
+            {
+                <dt class="col-sm-3 d-flex align-items-center">
+                    <i class="bi bi-image text-primary me-2"></i>Image
+                </dt>
+                <dd class="col-sm-9">
+                    <img src="@Model.Claim!.ImageUrl" alt="evidence" class="img-fluid rounded shadow-sm" style="max-width: 400px;" />
+                </dd>
+            }
+        </dl>
+    </div>
+</div>
 
-<h4>Used Parts</h4>
-<div class="table-responsive">
-    <table class="table table-sm table-striped">
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header gradient-info">
+        <h5 class="mb-0 text-white">
+            <i class="bi bi-gear me-2"></i>Used Parts
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
         <thead>
                 <tr>
                 <th>Part</th>
@@ -98,8 +166,10 @@
                 </tr>
             }
         </tbody>
-    </table>
- </div>
+            </table>
+        </div>
+    </div>
+</div>
 
 @if (TempData["AiSuggestion"] is string aiSuggestion)
 {

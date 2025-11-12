@@ -5,9 +5,23 @@
     ViewData["Title"] = "Create Claim";
 }
 
-<h2 class="mb-3">Create Claim</h2>
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="/Claims/Index"><i class="bi bi-house me-1"></i>Claims</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Create Claim</li>
+    </ol>
+</nav>
 
-<form method="post" enctype="multipart/form-data" class="row g-3">
+<div class="mb-4">
+    <h2 class="mb-1">
+        <i class="bi bi-plus-circle me-2"></i>Create New Claim
+    </h2>
+    <p class="text-muted mb-0">Submit a new warranty claim request</p>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-body p-4">
+        <form method="post" enctype="multipart/form-data" class="row g-4">
     <div asp-validation-summary="ModelOnly" class="text-danger"></div>
     <div class="col-md-6">
         <label asp-for="Input.VehicleId" class="form-label"></label>
@@ -43,10 +57,18 @@
         <input asp-for="Image" type="file" class="form-control" />
     </div>
     <div class="col-12">
-        <button type="submit" class="btn btn-primary">Create</button>
-        <a asp-page="Index" class="btn btn-secondary">Back</a>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle me-1"></i>Create Claim
+            </button>
+            <a asp-page="Index" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Cancel
+            </a>
+        </div>
     </div>
-</form>
+        </form>
+    </div>
+</div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />

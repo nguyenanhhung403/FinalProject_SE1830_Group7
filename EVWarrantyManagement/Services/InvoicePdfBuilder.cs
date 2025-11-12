@@ -17,7 +17,7 @@ public class QuestPdfInvoiceBuilder : IInvoicePdfBuilder
     {
         ArgumentNullException.ThrowIfNull(history);
 
-        var culture = CultureInfo.GetCultureInfo("vi-VN");
+        var culture = CultureInfo.GetCultureInfo("en-US");
         var parts = usedParts ?? Array.Empty<UsedPart>();
         var totalPartsCost = parts.Sum(p => (p.PartCost ?? 0m) * Math.Max(1, p.Quantity));
 

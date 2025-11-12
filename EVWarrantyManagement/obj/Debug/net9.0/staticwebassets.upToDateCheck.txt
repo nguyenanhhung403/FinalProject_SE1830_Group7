@@ -24,6 +24,7 @@ E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\js\site.js
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\css\site.css
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\dist\js\bootstrap.min.js.map
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\jquery-validation\dist\jquery.validate.min.js
+E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\js\chat.js
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\dist\js\bootstrap.bundle.min.js
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\jquery\dist\jquery.slim.js
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\dist\css\bootstrap-grid.rtl.min.css.map
@@ -34,6 +35,7 @@ E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\dist\css\bootstrap-grid.rtl.min.css
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\jquery\dist\jquery.min.map
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\dist\css\bootstrap.rtl.css
+E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\js\claims-realtime.js
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\dist\css\bootstrap-grid.rtl.css.map
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.css.map
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\dist\js\bootstrap.js
@@ -46,7 +48,9 @@ E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\jquery-validation-unobtrusive\LICENSE.txt
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\dist\js\bootstrap.bundle.js
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.min.css.map
+E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\js\signalr-connection.js
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.rtl.css
+E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\css\signalr-styles.css
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\dist\css\bootstrap-utilities.min.css
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\dist\css\bootstrap.rtl.min.css
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\dist\css\bootstrap.rtl.css.map
@@ -59,9 +63,15 @@ E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\jquery-validation-unobtrusive\dist\jquery.validate.unobtrusive.js
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.min.css
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\dist\css\bootstrap-utilities.rtl.min.css.map
+E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\js\dashboard-realtime.js
 E:\PRN222\FinalProject_SE1830_Group7\EVWarrantyManagement\wwwroot\lib\bootstrap\dist\css\bootstrap-reboot.rtl.min.css.map
+wwwroot\css\signalr-styles.css
 wwwroot\css\site.css
 wwwroot\favicon.ico
+wwwroot\js\chat.js
+wwwroot\js\claims-realtime.js
+wwwroot\js\dashboard-realtime.js
+wwwroot\js\signalr-connection.js
 wwwroot\js\site.js
 wwwroot\lib\bootstrap\dist\css\bootstrap.css
 wwwroot\lib\bootstrap\dist\css\bootstrap.css.map
@@ -130,4 +140,5 @@ wwwroot\uploads\43e80aa3-18b8-4356-a64e-1d2550aa6b8b.jpg
 wwwroot\uploads\44399869-0bb4-43ce-96d2-9bd996208add.jpg
 wwwroot\uploads\aecfc400-14ce-42b9-bd2e-20234af8e899.png
 wwwroot\uploads\c7d72605-4dae-48b0-8ca7-16084b064b05.jpg
+wwwroot\uploads\e13326db-084b-400b-ba9c-9f9fcd35d10c.jpg
 wwwroot\uploads\f6441ecc-d65c-4332-a6f0-83f945bfdc49.png

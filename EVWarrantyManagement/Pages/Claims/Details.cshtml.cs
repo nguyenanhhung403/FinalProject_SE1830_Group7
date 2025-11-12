@@ -8,10 +8,12 @@ using System.Text.Json;
 using EVWarrantyManagement.BLL.Interfaces;
 using EVWarrantyManagement.BO.Models;
 using EVWarrantyManagement.Configuration;
+using EVWarrantyManagement.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 
 namespace EVWarrantyManagement.Pages.Claims;
@@ -23,6 +25,7 @@ public class DetailsModel : PageModel
     private readonly IPartService _partService;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IOptions<N8nSettings> _n8nOptions;
+    private readonly IHubContext<NotificationHub> _notificationHub;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
@@ -32,12 +35,14 @@ public class DetailsModel : PageModel
         IWarrantyClaimService claimService,
         IPartService partService,
         IHttpClientFactory httpClientFactory,
-        IOptions<N8nSettings> n8nOptions)
+        IOptions<N8nSettings> n8nOptions,
+        IHubContext<NotificationHub> notificationHub)
     {
         _claimService = claimService;
         _partService = partService;
         _httpClientFactory = httpClientFactory;
         _n8nOptions = n8nOptions;
+        _notificationHub = notificationHub;
     }
 
     [BindProperty]
@@ -113,6 +118,14 @@ public class DetailsModel : PageModel
         if (Claim == null) return RedirectToPage("Index");
         await HydrateUsedPartsAsync(Claim.UsedParts);
         await LoadLookupsAsync();
+        
+        // Khôi phục AI suggestion từ Session nếu có (khi TempData đã bị xóa)
+        var sessionKey = $"AiSuggestion_{id}";
+        if (TempData["AiSuggestion"] == null && HttpContext.Session.GetString(sessionKey) is string savedSuggestion)
+        {
+            TempData["AiSuggestion"] = savedSuggestion;
+        }
+        
         return Page();
     }
 
@@ -168,6 +181,29 @@ public class DetailsModel : PageModel
         };
         await _claimService.AddUsedPartAsync(usedPart, GetUserId());
         TempData["Success"] = "Part added.";
+        
+        // Send SignalR notification
+        var updatedClaim = await _claimService.GetClaimAsync(ClaimId);
+        if (updatedClaim != null)
+        {
+            await _notificationHub.Clients.Group($"Claim_{ClaimId}")
+                .SendAsync("ReceiveClaimUpdate", new
+                {
+                    ClaimId = ClaimId,
+                    Type = "part_added",
+                    PartName = part.PartName,
+                    Message = $"Part {part.PartName} added to claim #{ClaimId}",
+                    TotalCost = updatedClaim.TotalCost
+                });
+        }
+        
+        // Preserve AI suggestion từ Session khi redirect
+        var sessionKey = $"AiSuggestion_{ClaimId}";
+        if (HttpContext.Session.GetString(sessionKey) is string savedSuggestion)
+        {
+            TempData["AiSuggestion"] = savedSuggestion;
+        }
+        
         return RedirectToPage(new { id = ClaimId });
     }
 
@@ -205,6 +241,14 @@ public class DetailsModel : PageModel
 
         await _claimService.RemoveUsedPartAsync(usedPartId, GetUserId());
         TempData["Success"] = "Đã xoá linh kiện khỏi yêu cầu.";
+        
+        // Preserve AI suggestion từ Session khi redirect
+        var sessionKey = $"AiSuggestion_{id}";
+        if (HttpContext.Session.GetString(sessionKey) is string savedSuggestion)
+        {
+            TempData["AiSuggestion"] = savedSuggestion;
+        }
+        
         return RedirectToPage(new { id });
     }
 
@@ -404,7 +448,11 @@ public class DetailsModel : PageModel
                     
                     if (!string.IsNullOrWhiteSpace(aiSuggestion))
                     {
-                        // Lưu AI suggestion vào TempData
+                        // Lưu AI suggestion vào Session để giữ lại khi thêm/xóa linh kiện
+                        var sessionKey = $"AiSuggestion_{id}";
+                        HttpContext.Session.SetString(sessionKey, aiSuggestion);
+                        
+                        // Cũng lưu vào TempData để hiển thị ngay
                         TempData["AiSuggestion"] = aiSuggestion;
                         var partsInfo = usedPartsList.Count > 0 
                             ? $" (Đã gửi {usedPartsList.Count} linh kiện đã sử dụng)" 
@@ -448,6 +496,18 @@ public class DetailsModel : PageModel
         }
         await _claimService.ApproveClaimAsync(id, GetUserId(), "Approved", null);
         TempData["Success"] = "Approved.";
+        
+        // Send SignalR notification
+        await _notificationHub.Clients.Group($"Claim_{id}")
+            .SendAsync("ReceiveClaimUpdate", new
+            {
+                ClaimId = id,
+                Type = "status_change",
+                NewStatus = "Approved",
+                OldStatus = "Pending",
+                Message = $"Claim #{id} has been approved"
+            });
+        
         return RedirectToPage(new { id });
     }
     public async Task<IActionResult> OnPostRejectAsync(int id)
@@ -458,6 +518,17 @@ public class DetailsModel : PageModel
         }
         await _claimService.RejectClaimAsync(id, GetUserId(), "Rejected");
         TempData["Success"] = "Rejected.";
+        
+        // Send SignalR notification
+        await _notificationHub.Clients.Group($"Claim_{id}")
+            .SendAsync("ReceiveClaimUpdate", new
+            {
+                ClaimId = id,
+                Type = "status_change",
+                NewStatus = "Rejected",
+                Message = $"Claim #{id} has been rejected"
+            });
+        
         return RedirectToPage(new { id });
     }
     public async Task<IActionResult> OnPostOnHoldAsync(int id)
@@ -468,6 +539,17 @@ public class DetailsModel : PageModel
         }
         await _claimService.PutClaimOnHoldAsync(id, GetUserId(), "On hold");
         TempData["Success"] = "On hold.";
+        
+        // Send SignalR notification
+        await _notificationHub.Clients.Group($"Claim_{id}")
+            .SendAsync("ReceiveClaimUpdate", new
+            {
+                ClaimId = id,
+                Type = "status_change",
+                NewStatus = "OnHold",
+                Message = $"Claim #{id} has been put on hold"
+            });
+        
         return RedirectToPage(new { id });
     }
     public async Task<IActionResult> OnPostCompleteAsync(int id, string? technicianNote)
@@ -490,6 +572,19 @@ public class DetailsModel : PageModel
         var note = string.IsNullOrWhiteSpace(technicianNote) ? "Work completed" : technicianNote;
         await _claimService.CompleteClaimAsync(id, GetUserId(), DateOnly.FromDateTime(DateTime.UtcNow), note);
         TempData["Success"] = "Completed.";
+        
+        // Send SignalR notification
+        var completedClaim = await _claimService.GetClaimAsync(id);
+        await _notificationHub.Clients.Group($"Claim_{id}")
+            .SendAsync("ReceiveClaimUpdate", new
+            {
+                ClaimId = id,
+                Type = "status_change",
+                NewStatus = "Completed",
+                Message = $"Claim #{id} has been completed",
+                TotalCost = completedClaim?.TotalCost
+            });
+        
         return RedirectToPage(new { id });
     }
     public async Task<IActionResult> OnPostStartAsync(int id, string? technicianNote)
@@ -533,6 +628,17 @@ public class DetailsModel : PageModel
         }
         await _claimService.ArchiveClaimAsync(id, GetUserId(), "Archived");
         TempData["Success"] = "Archived.";
+        
+        // Send SignalR notification
+        await _notificationHub.Clients.Group($"Claim_{id}")
+            .SendAsync("ReceiveClaimUpdate", new
+            {
+                ClaimId = id,
+                Type = "status_change",
+                NewStatus = "Archived",
+                Message = $"Claim #{id} has been archived"
+            });
+        
         return RedirectToPage(new { id });
     }
 

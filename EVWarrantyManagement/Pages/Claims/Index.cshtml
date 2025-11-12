@@ -9,75 +9,95 @@
     bool isAdmin = User.IsInRole("Admin");
 }
 
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a asp-page="/Index">Dashboard</a></li>
+<nav aria-label="breadcrumb" class="mb-2">
+    <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a asp-page="/Index"><i class="bi bi-house me-1"></i>Dashboard</a></li>
         <li class="breadcrumb-item active" aria-current="page">Claims</li>
     </ol>
-    </nav>
+</nav>
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h2 class="mb-0">Claims</h2>
-    <div class="d-flex align-items-center gap-2">
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <div>
+        <h2 class="mb-0" style="font-size: 1.5rem;">
+            <i class="bi bi-file-earmark-text me-2"></i>Claims Management
+        </h2>
+        <p class="text-muted mb-0 small">Manage and track warranty claims</p>
+    </div>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
         @if (isAdmin)
         {
-            <a class="btn btn-outline-primary" asp-page="Review">Pending/On Hold</a>
-            <a class="btn btn-outline-secondary" asp-page="Completed">Completed</a>
-            <a class="btn btn-outline-dark" asp-page="Archived">Archived</a>
+            <a class="btn btn-sm btn-outline-primary" asp-page="Review">Pending/On Hold</a>
+            <a class="btn btn-sm btn-outline-secondary" asp-page="Completed">Completed</a>
+            <a class="btn btn-sm btn-outline-dark" asp-page="Archived">Archived</a>
         }
         else if (isEVM)
         {
-            <a class="btn btn-outline-primary" asp-page="Review">Pending/On Hold</a>
-            <a class="btn btn-outline-secondary" asp-page="Completed">Completed</a>
-            <a class="btn btn-outline-dark" asp-page="Archived">Archived</a>
+            <a class="btn btn-sm btn-outline-primary" asp-page="Review">Pending/On Hold</a>
+            <a class="btn btn-sm btn-outline-secondary" asp-page="Completed">Completed</a>
+            <a class="btn btn-sm btn-outline-dark" asp-page="Archived">Archived</a>
         }
         else if (isTechnician)
         {
-            <a class="btn btn-outline-success" asp-page="Index" asp-route-status="Completed">Show Completed</a>
-            <a class="btn btn-outline-dark" asp-page="Archived">My Archived Claims</a>
+            <a class="btn btn-sm btn-outline-success" asp-page="Index" asp-route-status="Completed">Show Completed</a>
+            <a class="btn btn-sm btn-outline-dark" asp-page="Archived">My Archived Claims</a>
         }
         else if (isSCStaff)
         {
-            <a class="btn btn-outline-dark" asp-page="Archived">The order has been corrected</a>
+            <a class="btn btn-sm btn-outline-dark" asp-page="Archived">The order has been corrected</a>
         }
-        <form method="get" class="d-flex align-items-center gap-2">
-            <input class="form-control" type="search" name="q" value="@Model.Q" placeholder="Search Model or Description" />
-            <select class="form-select" name="status">
+        <form method="get" class="d-flex align-items-center gap-1">
+            <input class="form-control form-control-sm" type="search" name="q" value="@Model.Q" placeholder="Search..." style="width: 180px;" />
+            <select class="form-select form-select-sm" name="status" style="width: 130px;">
                 <option value="">All Statuses</option>
                 @foreach (var s in Model.StatusOptions)
                 {
                     <option value="@s" selected="@(Model.Status == s ? true : false)">@s</option>
                 }
             </select>
-            <button class="btn btn-outline-secondary" type="submit">Filter</button>
+            <button class="btn btn-sm btn-outline-secondary" type="submit">Filter</button>
         </form>
         @if (isSCStaff)
         {
-            <a class="btn btn-primary" asp-page="Create"><i class="bi bi-plus-lg me-1"></i> New Claim</a>
+            <a class="btn btn-sm btn-primary" asp-page="Create">
+                <i class="bi bi-plus-circle me-1"></i> New Claim
+            </a>
         }
     </div>
 </div>
 
 @if (TempData["Success"] is string sMsg)
 {
-    <div class="alert alert-success">@sMsg</div>
+    <div class="alert alert-success alert-dismissible fade show py-2 mb-2" role="alert">
+        <i class="bi bi-check-circle me-2"></i><small>@sMsg</small>
+        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 @if (TempData["Error"] is string eMsg)
 {
-    <div class="alert alert-danger">@eMsg</div>
+    <div class="alert alert-danger alert-dismissible fade show py-2 mb-2" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i><small>@eMsg</small>
+        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["Warning"] is string wMsg)
+{
+    <div class="alert alert-warning alert-dismissible fade show py-2 mb-2" role="alert">
+        <i class="bi bi-exclamation-circle me-2"></i><small>@wMsg</small>
+        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 
-<div class="table-responsive">
-    <table class="table table-striped align-middle">
-        <thead>
+<div class="table-responsive" style="max-height: calc(100vh - 280px); overflow-y: auto;">
+    <table class="table table-striped table-sm align-middle mb-0">
+        <thead class="table-light sticky-top" style="top: 0; z-index: 10;">
             <tr>
-                <th>ClaimID</th>
-                <th>Model</th>
-                <th>VIN</th>
-                <th>Description</th>
-                <th>Date</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th class="py-2" style="font-size: 0.875rem;">ClaimID</th>
+                <th class="py-2" style="font-size: 0.875rem;">Model</th>
+                <th class="py-2" style="font-size: 0.875rem;">VIN</th>
+                <th class="py-2" style="font-size: 0.875rem;">Description</th>
+                <th class="py-2" style="font-size: 0.875rem;">Date</th>
+                <th class="py-2" style="font-size: 0.875rem;">Status</th>
+                <th class="py-2" style="font-size: 0.875rem;">Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -85,40 +105,58 @@
         {
             var status = item.StatusCode ?? string.Empty;
             bool isCompletedStatus = string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "Archived", StringComparison.OrdinalIgnoreCase);
+            var statusClass = status.ToLower() switch {
+                "pending" => "status-pending",
+                "approved" => "status-approved",
+                "rejected" => "status-rejected",
+                "inprogress" => "status-inprogress",
+                "completed" => "status-completed",
+                "archived" => "status-archived",
+                "onhold" => "status-onhold",
+                "closed" => "status-closed",
+                _ => "bg-secondary"
+            };
             <tr>
-                <td>@item.ClaimId</td>
-                <td>@(item.Vehicle?.Model ?? "N/A")</td>
-                <td>@item.Vin</td>
-                <td class="text-truncate" style="max-width: 360px;">@item.Description</td>
-                <td>@item.DateDiscovered</td>
-                <td><span class="badge bg-secondary">@item.StatusCode</span></td>
-                <td class="text-nowrap">
-                    <a class="btn btn-sm btn-secondary" asp-page="Details" asp-route-id="@item.ClaimId">Details</a>
+                <td class="py-1"><strong style="font-size: 0.9rem;">#@item.ClaimId</strong></td>
+                <td class="py-1" style="font-size: 0.875rem;">
+                    <i class="bi bi-car-front text-primary me-1"></i>
+                    @(item.Vehicle?.Model ?? "N/A")
+                </td>
+                <td class="py-1"><code style="font-size: 0.8rem;">@item.Vin</code></td>
+                <td class="py-1 text-truncate" style="max-width: 280px; font-size: 0.875rem;">@item.Description</td>
+                <td class="py-1" style="font-size: 0.875rem;">
+                    <i class="bi bi-calendar3 me-1 text-muted"></i>
+                    @item.DateDiscovered.ToString("MM/dd/yyyy")
+                </td>
+                <td class="py-1"><span class="badge @statusClass" style="font-size: 0.75rem;">@item.StatusCode</span></td>
+                <td class="py-1 text-nowrap">
+                    <a class="btn btn-xs btn-outline-primary" asp-page="Details" asp-route-id="@item.ClaimId" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+                        <i class="bi bi-eye"></i>
+                    </a>
                     @if (isTechnician && !isCompletedStatus)
                     {
-                        <a class="btn btn-sm btn-outline-primary" asp-page="Details" asp-route-id="@item.ClaimId">Add Used Parts</a>
                         @if (string.Equals(status, "Approved", StringComparison.OrdinalIgnoreCase))
                         {
-                            <form method="post" asp-page-handler="Start" class="d-inline-flex align-items-center gap-2">
+                            <form method="post" asp-page-handler="Start" class="d-inline-flex align-items-center gap-1" style="margin-left: 0.25rem;">
                                 <input type="hidden" name="claimId" value="@item.ClaimId" />
-                                <input type="text" name="technicianNote" class="form-control form-control-sm" style="max-width: 180px;" placeholder="Repair note" />
-                                <button class="btn btn-sm btn-primary" type="submit">Start Repair</button>
+                                <input type="text" name="technicianNote" class="form-control form-control-sm" style="max-width: 120px; font-size: 0.75rem; padding: 0.2rem 0.4rem;" placeholder="Note" />
+                                <button class="btn btn-xs btn-primary" type="submit" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">Start</button>
                             </form>
                         }
                         @if (string.Equals(status, "InProgress", StringComparison.OrdinalIgnoreCase))
                         {
-                            <form method="post" asp-page-handler="Complete" class="d-inline-flex align-items-center gap-2">
+                            <form method="post" asp-page-handler="Complete" class="d-inline-flex align-items-center gap-1" style="margin-left: 0.25rem;">
                                 <input type="hidden" name="claimId" value="@item.ClaimId" />
-                                <input type="text" name="technicianNote" class="form-control form-control-sm" style="max-width: 180px;" placeholder="Completion note" />
-                                <button class="btn btn-sm btn-success" type="submit">Mark Completed</button>
+                                <input type="text" name="technicianNote" class="form-control form-control-sm" style="max-width: 120px; font-size: 0.75rem; padding: 0.2rem 0.4rem;" placeholder="Note" />
+                                <button class="btn btn-xs btn-success" type="submit" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">Complete</button>
                             </form>
                         }
                     }
                     @if (isAdmin && string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase))
                     {
-                        <form method="post" asp-page-handler="Archive" class="d-inline">
+                        <form method="post" asp-page-handler="Archive" class="d-inline" style="margin-left: 0.25rem;">
                             <input type="hidden" name="claimId" value="@item.ClaimId" />
-                            <button class="btn btn-sm btn-outline-dark" type="submit">Archive</button>
+                            <button class="btn btn-xs btn-outline-dark" type="submit" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">Archive</button>
                         </form>
                     }
                 </td>

@@ -17,6 +17,18 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 
+// Add SignalR
+builder.Services.AddSignalR();
+
+// Add Session support for AI suggestions
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
 // DbContext
 builder.Services.AddDbContext<EVWarrantyManagementContext>(options =>
     options.UseSqlServer(
@@ -36,6 +48,7 @@ builder.Services.AddScoped<IPartService, PartService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IWarrantyClaimService, WarrantyClaimService>();
 builder.Services.AddScoped<IReportingService, ReportingService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddSingleton<IInvoicePdfBuilder, QuestPdfInvoiceBuilder>();
 
 QuestPDF.Settings.License = LicenseType.Community;
@@ -93,6 +106,8 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
+app.UseSession();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -126,6 +141,11 @@ app.MapGet("/", async context =>
 });
 
 app.MapStaticAssets();
+
+// Map SignalR hubs
+app.MapHub<EVWarrantyManagement.Hubs.NotificationHub>("/hubs/notification");
+app.MapHub<EVWarrantyManagement.Hubs.ChatHub>("/hubs/chat");
+
 app.MapRazorPages()
    .WithStaticAssets();
 

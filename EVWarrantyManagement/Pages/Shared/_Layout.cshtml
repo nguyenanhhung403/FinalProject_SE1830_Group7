@@ -3,20 +3,25 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - EVWarrantyManagement</title>
+    <title>@ViewData["Title"] - EV Warranty Management</title>
     <script type="importmap"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/signalr-styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/EVWarrantyManagement.styles.css" asp-append-version="true" />
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom shadow-sm">
-            <div class="container-fluid">
-                <a class="navbar-brand d-flex align-items-center gap-2 fw-semibold" href="/">
-                    <i class="bi bi-ev-front text-primary"></i>
-                    <span>EV Warranty Portal</span>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid px-4">
+                <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" href="/">
+                    <i class="bi bi-ev-front-fill" style="font-size: 1.75rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;"></i>
+                    <span class="d-none d-md-inline">EV Warranty Portal</span>
+                    <span class="d-md-none">EV Portal</span>
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent" aria-controls="navbarSupportedContent"
                         aria-expanded="false" aria-label="Toggle navigation">
@@ -26,26 +31,50 @@
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
-                            if (User.IsInRole("Admin") || User.IsInRole("EVM Staff"))
+                            if (User.IsInRole("Admin") || User.IsInRole("EVM Staff") || User.IsInRole("EVM"))
                             {
-                                <li class="nav-item"><a class="nav-link" asp-page="/Dashboard/Index">Dashboard</a></li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Dashboard/Index" ? "active" : "")" asp-page="/Dashboard/Index">
+                                        <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                                    </a>
+                                </li>
                             }
-                            <li class="nav-item"><a class="nav-link" asp-page="/Claims/Index">Claims</a></li>
+                            <li class="nav-item">
+                                <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Claims") == true ? "active" : "")" asp-page="/Claims/Index">
+                                    <i class="bi bi-file-earmark-text me-1"></i> Claims
+                                </a>
+                            </li>
 
-                            if (User.IsInRole("Admin") || User.IsInRole("SC Staff"))
+                            if (User.IsInRole("Admin"))
                             {
-                                <li class="nav-item"><a class="nav-link" asp-page="/Vehicles/Index">Vehicles</a></li>
-                                <li class="nav-item"><a class="nav-link" asp-page="/Customers/Index">Customers</a></li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Vehicles") == true ? "active" : "")" asp-page="/Vehicles/Index">
+                                        <i class="bi bi-car-front me-1"></i> Vehicles
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Customers") == true ? "active" : "")" asp-page="/Customers/Index">
+                                        <i class="bi bi-people me-1"></i> Customers
+                                    </a>
+                                </li>
                             }
 
-                            if (User.IsInRole("Admin") || User.IsInRole("SC Staff") || User.IsInRole("SC Technician"))
+                            if (User.IsInRole("Admin") || User.IsInRole("SC Technician"))
                             {
-                                <li class="nav-item"><a class="nav-link" asp-page="/Parts/Index">Parts</a></li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Parts") == true ? "active" : "")" asp-page="/Parts/Index">
+                                        <i class="bi bi-gear me-1"></i> Parts
+                                    </a>
+                                </li>
                             }
 
                             if (User.IsInRole("Admin") || User.IsInRole("EVM Staff") || User.IsInRole("EVM"))
                             {
-                                <li class="nav-item"><a class="nav-link" asp-page="/Reports/Index">Reports</a></li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Reports") == true ? "active" : "")" asp-page="/Reports/Index">
+                                        <i class="bi bi-graph-up me-1"></i> Reports
+                                    </a>
+                                </li>
                             }
                         }
                     </ul>
@@ -55,18 +84,28 @@
                             var username = User.Identity?.Name;
                             var role = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" id="userMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-person-circle"></i> @username <small class="text-muted">(@role)</small>
+                                <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" id="userMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-person-circle" style="font-size: 1.5rem;"></i>
+                                    <div class="d-none d-md-block">
+                                        <div class="fw-semibold">@username</div>
+                                        <small class="text-muted" style="font-size: 0.75rem;">@role</small>
+                                    </div>
                                 </a>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
-                                    <li><a class="dropdown-item" asp-area="" asp-page="/Account/Logout">Sign out</a></li>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-lg" aria-labelledby="userMenu">
+                                    <li>
+                                        <a class="dropdown-item d-flex align-items-center gap-2" asp-area="" asp-page="/Account/Logout">
+                                            <i class="bi bi-box-arrow-right"></i> Sign out
+                                        </a>
+                                    </li>
                                 </ul>
                             </li>
                         }
                         else
                         {
                             <li class="nav-item">
-                                <a class="nav-link" asp-area="" asp-page="/Account/Login">Sign in</a>
+                                <a class="nav-link" asp-area="" asp-page="/Account/Login">
+                                    <i class="bi bi-box-arrow-in-right me-1"></i> Sign in
+                                </a>
                             </li>
                         }
                     </ul>
@@ -74,14 +113,30 @@
             </div>
         </nav>
     </header>
-    <main class="container py-4">
+    <main class="container py-4 fade-in">
         @RenderBody()
     </main>
 
-    <footer class="border-top text-center py-3 small text-muted">© 2025 OEM Warranty Portal</footer>
+    <footer class="text-center py-4">
+        <div class="container">
+            <p class="mb-2">
+                <i class="bi bi-lightning-charge-fill text-primary me-1"></i>
+                <strong>EV Warranty Management System</strong>
+            </p>
+            <p class="small text-muted mb-0">© 2025 OEM Warranty Portal. All rights reserved.</p>
+        </div>
+    </footer>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SignalR Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.0/dist/browser/signalr.min.js"></script>
+    <!-- SignalR Connection Manager -->
+    <script src="~/js/signalr-connection.js" asp-append-version="true"></script>
+    <!-- SignalR Real-Time Scripts -->
+    <script src="~/js/dashboard-realtime.js" asp-append-version="true"></script>
+    <script src="~/js/claims-realtime.js" asp-append-version="true"></script>
+    <script src="~/js/chat.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)

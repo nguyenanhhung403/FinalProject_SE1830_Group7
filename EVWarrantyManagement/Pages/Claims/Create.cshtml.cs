@@ -3,9 +3,11 @@ using System.Linq;
 using System.Security.Claims;
 using EVWarrantyManagement.BLL.Interfaces;
 using EVWarrantyManagement.BO.Models;
+using EVWarrantyManagement.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace EVWarrantyManagement.Pages.Claims;
@@ -17,13 +19,20 @@ public class CreateModel : PageModel
     private readonly IWebHostEnvironment _env;
     private readonly IVehicleService _vehicleService;
     private readonly EVWarrantyManagement.DAL.EVWarrantyManagementContext _db;
+    private readonly IHubContext<NotificationHub> _notificationHub;
 
-    public CreateModel(IWarrantyClaimService claimService, IWebHostEnvironment env, IVehicleService vehicleService, EVWarrantyManagement.DAL.EVWarrantyManagementContext db)
+    public CreateModel(
+        IWarrantyClaimService claimService, 
+        IWebHostEnvironment env, 
+        IVehicleService vehicleService, 
+        EVWarrantyManagement.DAL.EVWarrantyManagementContext db,
+        IHubContext<NotificationHub> notificationHub)
     {
         _claimService = claimService;
         _env = env;
         _vehicleService = vehicleService;
         _db = db;
+        _notificationHub = notificationHub;
     }
 
     [BindProperty]
@@ -99,8 +108,27 @@ public class CreateModel : PageModel
         };
 
         var userId = GetUserId();
-        await _claimService.CreateClaimAsync(claim, userId, "Claim created");
+        var createdClaim = await _claimService.CreateClaimAsync(claim, userId, "Claim created");
         TempData["Success"] = "Claim created successfully.";
+
+        // Send SignalR notification to EVM Staff
+        if (createdClaim != null && vehicle != null)
+        {
+            var serviceCenter = await _db.ServiceCenters
+                .AsNoTracking()
+                .FirstOrDefaultAsync(sc => sc.ServiceCenterId == createdClaim.ServiceCenterId);
+
+            await _notificationHub.Clients.Groups("EVM Staff", "EVM", "Admin")
+                .SendAsync("ReceiveNewClaim", new
+                {
+                    ClaimId = createdClaim.ClaimId,
+                    Vin = createdClaim.Vin,
+                    VehicleModel = vehicle.Model,
+                    ServiceCenterName = serviceCenter?.Name,
+                    Message = $"New claim #{createdClaim.ClaimId} created for {vehicle.Model} (VIN: {createdClaim.Vin})"
+                });
+        }
+
         return RedirectToPage("Index");
     }
 

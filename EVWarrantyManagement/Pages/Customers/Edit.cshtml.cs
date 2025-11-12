@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace EVWarrantyManagement.Pages.Customers;
 
-[Authorize]
+[Authorize(Policy = "RequireAdmin")]
 public class EditModel : PageModel
 {
     private readonly ICustomerService _customerService;

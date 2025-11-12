@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace EVWarrantyManagement.Pages.Customers;
 
-[Authorize]
+[Authorize(Policy = "RequireAdmin")]
 public class IndexModel : PageModel
 {
     private readonly ICustomerService _customerService;

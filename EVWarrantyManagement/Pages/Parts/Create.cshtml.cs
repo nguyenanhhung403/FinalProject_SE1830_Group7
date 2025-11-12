@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace EVWarrantyManagement.Pages.Parts;
 
-[Authorize]
+[Authorize(Policy = "RequireAdmin")]
 public class CreateModel : PageModel
 {
     private readonly IPartService _partService;

@@ -32,6 +32,10 @@ public interface IWarrantyClaimRepository
 
     Task<IReadOnlyDictionary<string, int>> GetClaimCountsByMonthAsync(int year, CancellationToken cancellationToken = default);
 
+    Task<decimal> GetTotalRevenueAsync(CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyDictionary<string, decimal>> GetRevenueByMonthAsync(int year, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<WarrantyHistory>> GetArchivedClaimsAsync(int userId, string role, CancellationToken cancellationToken = default);
 
     Task<WarrantyHistory?> GetArchivedClaimAsync(int historyId, CancellationToken cancellationToken = default);

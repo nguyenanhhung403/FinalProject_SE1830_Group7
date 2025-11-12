@@ -334,6 +334,35 @@ public class WarrantyClaimRepository : IWarrantyClaimRepository
             x => x.Count);
     }
 
+    public async Task<decimal> GetTotalRevenueAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.WarrantyClaims
+            .AsNoTracking()
+            .Where(c => c.StatusCode == "Completed" && c.TotalCost.HasValue)
+            .SumAsync(c => c.TotalCost!.Value, cancellationToken);
+    }
+
+    public async Task<IReadOnlyDictionary<string, decimal>> GetRevenueByMonthAsync(int year, CancellationToken cancellationToken = default)
+    {
+        var data = await _context.WarrantyClaims
+            .AsNoTracking()
+            .Where(c => c.CompletionDate.HasValue && 
+                       c.CompletionDate.Value.Year == year && 
+                       c.StatusCode == "Completed" && 
+                       c.TotalCost.HasValue)
+            .GroupBy(c => new { c.CompletionDate!.Value.Year, c.CompletionDate.Value.Month })
+            .Select(group => new { 
+                group.Key.Year, 
+                group.Key.Month, 
+                Revenue = group.Sum(c => c.TotalCost!.Value) 
+            })
+            .ToListAsync(cancellationToken);
+
+        return data.ToDictionary(
+            x => $"{x.Year:D4}-{x.Month:D2}",
+            x => x.Revenue);
+    }
+
     public async Task<IReadOnlyList<WarrantyHistory>> GetArchivedClaimsAsync(int userId, string role, CancellationToken cancellationToken = default)
     {
         IQueryable<WarrantyHistory> histories = _context.WarrantyHistories

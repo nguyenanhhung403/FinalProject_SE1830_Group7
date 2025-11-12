@@ -27,5 +27,15 @@ public class ReportingService : IReportingService
     {
         return _warrantyClaimRepository.GetClaimCountsByMonthAsync(year, cancellationToken);
     }
+
+    public Task<decimal> GetTotalRevenueAsync(CancellationToken cancellationToken = default)
+    {
+        return _warrantyClaimRepository.GetTotalRevenueAsync(cancellationToken);
+    }
+
+    public Task<IReadOnlyDictionary<string, decimal>> GetRevenueByMonthAsync(int year, CancellationToken cancellationToken = default)
+    {
+        return _warrantyClaimRepository.GetRevenueByMonthAsync(year, cancellationToken);
+    }
 }
 

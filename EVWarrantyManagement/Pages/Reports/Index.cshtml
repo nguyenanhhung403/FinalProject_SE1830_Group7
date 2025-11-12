@@ -4,84 +4,212 @@
     ViewData["Title"] = "Reports";
 }
 
-<h2 class="mb-3">Dashboard</h2>
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-page="/Dashboard/Index"><i class="bi bi-house-door me-1"></i>Dashboard</a></li>
+        <li class="breadcrumb-item active" aria-current="page"><i class="bi bi-graph-up me-1"></i>Reports</li>
+    </ol>
+</nav>
+
+<div class="mb-4">
+    <h2 class="mb-1">
+        <i class="bi bi-graph-up me-2"></i>Reports & Analytics
+    </h2>
+    <p class="text-muted mb-0">Comprehensive warranty claims and revenue analytics</p>
+</div>
 
 @if (TempData["Success"] is string sMsg)
 {
-    <div class="alert alert-success">@sMsg</div>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>@sMsg
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 @if (TempData["Error"] is string eMsg)
 {
-    <div class="alert alert-danger">@eMsg</div>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>@eMsg
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 
-<div class="row g-3 mb-3">
-    <div class="col-md-4">
-        <div class="card">
+<!-- Year Filter -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body">
+        <form method="get" class="d-flex align-items-center gap-3">
+            <label for="year" class="form-label mb-0 fw-semibold">Filter by Year:</label>
+            <input type="number" id="year" name="year" class="form-control" style="width: 120px;" value="@Model.Year" min="2020" max="@DateTime.UtcNow.Year" />
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-funnel me-1"></i>Apply
+            </button>
+            <a href="?year=@DateTime.UtcNow.Year" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-clockwise me-1"></i>Reset
+            </a>
+        </form>
+    </div>
+</div>
+
+<!-- Key Metrics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 h-100">
             <div class="card-body">
-                <div class="text-muted">Total Claims</div>
-                <div class="display-6">@Model.TotalClaims</div>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="text-muted small">Total Claims</div>
+                    <i class="bi bi-file-earmark-text text-primary" style="font-size: 1.5rem;"></i>
+                </div>
+                <div class="display-6 fw-bold text-primary">@Model.TotalClaims</div>
+                <small class="text-muted">All time</small>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 h-100">
             <div class="card-body">
-                <div class="text-muted">Pending</div>
-                <div class="display-6">@Model.GetStatus("Pending")</div>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="text-muted small">Total Revenue</div>
+                    <i class="bi bi-currency-dollar text-success" style="font-size: 1.5rem;"></i>
+                </div>
+                <div class="display-6 fw-bold text-success">$@Model.TotalRevenue.ToString("N2")</div>
+                <small class="text-muted">From completed claims</small>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card">
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 h-100">
             <div class="card-body">
-                <div class="text-muted">Completed</div>
-                <div class="display-6">@Model.GetStatus("Completed")</div>
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="text-muted small">Pending</div>
+                    <i class="bi bi-hourglass-split text-warning" style="font-size: 1.5rem;"></i>
+                </div>
+                <div class="display-6 fw-bold text-warning">@Model.GetStatus("Pending")</div>
+                <small class="text-muted">Awaiting review</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="text-muted small">Completed</div>
+                    <i class="bi bi-check-circle text-success" style="font-size: 1.5rem;"></i>
+                </div>
+                <div class="display-6 fw-bold text-success">@Model.GetStatus("Completed")</div>
+                <small class="text-muted">Finished claims</small>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row g-3 mb-3">
-    <div class="col-md-6">
-        <div class="card">
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <!-- Claims by Status Chart -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header gradient-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-pie-chart me-2"></i>Claims by Status
+                </h5>
+            </div>
             <div class="card-body">
-                <div class="text-muted">Claims by Status</div>
-                <table class="table table-sm mb-0">
-                    @foreach (var kv in Model.ByStatus)
-                    {
-                        <tr><td>@kv.Key</td><td class="text-end">@kv.Value</td></tr>
-                    }
-                </table>
+                <canvas id="statusChart" height="250"></canvas>
             </div>
         </div>
     </div>
- </div>
 
-<div class="row g-3">
-    <div class="col-md-6">
-        <div class="card">
+    <!-- Claims by Model Chart -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header gradient-info text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-bar-chart me-2"></i>Claims by Model
+                </h5>
+            </div>
             <div class="card-body">
-                <div class="text-muted">Claims by Model</div>
-                <table class="table table-sm mb-0">
-                    @foreach (var kv in Model.ByModel)
-                    {
-                        <tr><td>@kv.Key</td><td class="text-end">@kv.Value</td></tr>
-                    }
-                </table>
+                <canvas id="modelChart" height="250"></canvas>
             </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card">
+</div>
+
+<!-- Revenue and Claims Over Time -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header gradient-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-graph-up-arrow me-2"></i>Claims & Revenue by Month (@Model.Year)
+                </h5>
+            </div>
             <div class="card-body">
-                <div class="text-muted">Claims by Month (@Model.Year)</div>
-                <table class="table table-sm mb-0">
-                    @foreach (var kv in Model.ByMonth)
-                    {
-                        <tr><td>@kv.Key</td><td class="text-end">@kv.Value</td></tr>
-                    }
-                </table>
+                <canvas id="monthlyChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Data Tables -->
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-header gradient-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-table me-2"></i>Claims by Status
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Status</th>
+                                <th class="text-end">Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var kv in Model.ByStatus.OrderByDescending(x => x.Value))
+                            {
+                                <tr>
+                                    <td>
+                                        <span class="badge status-@kv.Key.ToLower().Replace(" ", "")">@kv.Key</span>
+                                    </td>
+                                    <td class="text-end fw-semibold">@kv.Value</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-header gradient-info text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-table me-2"></i>Claims by Model
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th class="text-end">Count</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var kv in Model.ByModel.OrderByDescending(x => x.Value))
+                            {
+                                <tr>
+                                    <td><i class="bi bi-car-front text-primary me-2"></i>@kv.Key</td>
+                                    <td class="text-end fw-semibold">@kv.Value</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -89,9 +217,194 @@
 
 @if (User.IsInRole("Admin"))
 {
-    <div class="mt-3 d-flex gap-2">
-        <form method="post" asp-page-handler="ExportCsv"><button class="btn btn-outline-primary" type="submit">Export to Excel (CSV)</button></form>
-        <form method="post" asp-page-handler="ExportPdf"><button class="btn btn-outline-secondary" type="submit">Export to PDF</button></form>
+    <div class="mt-4 d-flex gap-2">
+        <form method="post" asp-page-handler="ExportCsv">
+            <button class="btn btn-outline-primary" type="submit">
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i>Export to CSV
+            </button>
+        </form>
+        <form method="post" asp-page-handler="ExportPdf">
+            <button class="btn btn-outline-secondary" type="submit">
+                <i class="bi bi-file-earmark-pdf me-1"></i>Export to PDF
+            </button>
+        </form>
     </div>
 }
 
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        // Status Chart (Pie)
+        const statusCtx = document.getElementById('statusChart').getContext('2d');
+        const statusData = {
+            labels: [@Html.Raw(string.Join(", ", Model.ByStatus.Keys.Select(k => $"'{k}'")))],
+            datasets: [{
+                data: [@string.Join(", ", Model.ByStatus.Values)],
+                backgroundColor: [
+                    'rgba(102, 126, 234, 0.8)',
+                    'rgba(118, 75, 162, 0.8)',
+                    'rgba(255, 193, 7, 0.8)',
+                    'rgba(40, 167, 69, 0.8)',
+                    'rgba(220, 53, 69, 0.8)',
+                    'rgba(23, 162, 184, 0.8)',
+                    'rgba(108, 117, 125, 0.8)',
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        };
+        new Chart(statusCtx, {
+            type: 'pie',
+            data: statusData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+
+        // Model Chart (Bar)
+        const modelCtx = document.getElementById('modelChart').getContext('2d');
+        const modelData = {
+            labels: [@Html.Raw(string.Join(", ", Model.ByModel.Keys.Select(k => $"'{k}'")))],
+            datasets: [{
+                label: 'Claims',
+                data: [@string.Join(", ", Model.ByModel.Values)],
+                backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                borderColor: 'rgba(102, 126, 234, 1)',
+                borderWidth: 2
+            }]
+        };
+        new Chart(modelCtx, {
+            type: 'bar',
+            data: modelData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+
+        // Monthly Chart (Line with dual Y-axis)
+        const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+        
+        // Prepare month labels (all 12 months)
+        const months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+        const monthLabels = months.map(m => {
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return monthNames[parseInt(m) - 1];
+        });
+        
+        const byMonthData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ByMonth));
+        const revenueByMonthData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RevenueByMonth));
+        const year = @Model.Year;
+        
+        const claimsData = months.map(m => {
+            const key = year + '-' + m;
+            return byMonthData[key] || 0;
+        });
+        
+        const revenueData = months.map(m => {
+            const key = year + '-' + m;
+            return revenueByMonthData[key] || 0;
+        });
+
+        new Chart(monthlyCtx, {
+            type: 'line',
+            data: {
+                labels: monthLabels,
+                datasets: [
+                    {
+                        label: 'Claims',
+                        data: claimsData,
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: 'Revenue ($)',
+                        data: revenueData,
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        yAxisID: 'y1'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                if (context.datasetIndex === 1) {
+                                    return 'Revenue: $' + context.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                }
+                                return context.dataset.label + ': ' + context.parsed.y;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Number of Claims'
+                        }
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Revenue ($)'
+                        },
+                        grid: {
+                            drawOnChartArea: false,
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + value.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+}
