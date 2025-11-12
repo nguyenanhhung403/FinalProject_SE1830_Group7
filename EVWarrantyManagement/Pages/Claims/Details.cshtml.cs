@@ -171,6 +171,43 @@ public class DetailsModel : PageModel
         return RedirectToPage(new { id = ClaimId });
     }
 
+    public async Task<IActionResult> OnPostDeleteUsedPartAsync(int id, int usedPartId)
+    {
+        ClaimId = id;
+
+        if (!User.IsInRole("SC Technician") && !User.IsInRole("SC") && !User.IsInRole("Admin"))
+        {
+            return Forbid();
+        }
+
+        var claim = await _claimService.GetClaimAsync(id);
+        if (claim is null)
+        {
+            TempData["Error"] = "Claim not found.";
+            return RedirectToPage(new { id });
+        }
+
+        if (string.Equals(claim.StatusCode, "Completed", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(claim.StatusCode, "Archived", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(claim.StatusCode, "Closed", StringComparison.OrdinalIgnoreCase))
+        {
+            TempData["Error"] = "Cannot modify parts for a completed/archived claim.";
+            return RedirectToPage(new { id });
+        }
+
+        var usedParts = claim.UsedParts?.ToList() ?? new List<UsedPart>();
+        await HydrateUsedPartsAsync(usedParts);
+        if (usedParts.All(p => p.UsedPartId != usedPartId))
+        {
+            TempData["Error"] = "Used part not found in this claim.";
+            return RedirectToPage(new { id });
+        }
+
+        await _claimService.RemoveUsedPartAsync(usedPartId, GetUserId());
+        TempData["Success"] = "Đã xoá linh kiện khỏi yêu cầu.";
+        return RedirectToPage(new { id });
+    }
+
     public async Task<IActionResult> OnPostAiSuggestAsync(int id)
     {
         ClaimId = id;
@@ -236,7 +273,10 @@ public class DetailsModel : PageModel
                 if (usedPart.Part == null && usedPart.PartId > 0)
                 {
                     var part = await _partService.GetPartAsync(usedPart.PartId);
-                    usedPart.Part = part;
+                    if (part is not null)
+                    {
+                        usedPart.Part = part;
+                    }
                 }
 
                 usedPartsList.Add(new N8nUsedPart(
@@ -402,7 +442,7 @@ public class DetailsModel : PageModel
 
     public async Task<IActionResult> OnPostApproveAsync(int id)
     {
-        if (!User.IsInRole("EVM Staff") && !User.IsInRole("Admin"))
+        if (!User.IsInRole("EVM Staff") && !User.IsInRole("EVM") && !User.IsInRole("Admin"))
         {
             return Forbid();
         }
@@ -412,7 +452,7 @@ public class DetailsModel : PageModel
     }
     public async Task<IActionResult> OnPostRejectAsync(int id)
     {
-        if (!User.IsInRole("EVM Staff") && !User.IsInRole("Admin"))
+        if (!User.IsInRole("EVM Staff") && !User.IsInRole("EVM") && !User.IsInRole("Admin"))
         {
             return Forbid();
         }
@@ -422,7 +462,7 @@ public class DetailsModel : PageModel
     }
     public async Task<IActionResult> OnPostOnHoldAsync(int id)
     {
-        if (!User.IsInRole("EVM Staff") && !User.IsInRole("Admin"))
+        if (!User.IsInRole("EVM Staff") && !User.IsInRole("EVM") && !User.IsInRole("Admin"))
         {
             return Forbid();
         }
@@ -476,7 +516,7 @@ public class DetailsModel : PageModel
     }
     public async Task<IActionResult> OnPostArchiveAsync(int id)
     {
-        if (!User.IsInRole("Admin"))
+        if (!User.IsInRole("Admin") && !User.IsInRole("EVM Staff") && !User.IsInRole("EVM"))
         {
             return Forbid();
         }

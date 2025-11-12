@@ -25,6 +25,8 @@ public interface IWarrantyClaimService
 
     Task AddUsedPartAsync(UsedPart usedPart, int addedByUserId, CancellationToken cancellationToken = default);
 
+    Task RemoveUsedPartAsync(int usedPartId, int removedByUserId, CancellationToken cancellationToken = default);
+
     Task CompleteClaimAsync(int claimId, int technicianUserId, DateOnly? completionDate, string? comment, CancellationToken cancellationToken = default);
 
     Task ArchiveClaimAsync(int claimId, int archiverUserId, string? comment, CancellationToken cancellationToken = default);

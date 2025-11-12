@@ -233,6 +233,10 @@ public partial class EVWarrantyManagementContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Claim_ServiceCenter");
 
+            entity.HasOne(d => d.Vehicle).WithMany(p => p.WarrantyClaims)
+                .HasForeignKey(d => d.VehicleId)
+                .HasConstraintName("FK_Claim_Vehicle");
+
             entity.HasOne(d => d.StatusCodeNavigation).WithMany(p => p.WarrantyClaims)
                 .HasForeignKey(d => d.StatusCode)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -263,6 +267,10 @@ public partial class EVWarrantyManagementContext : DbContext
             entity.HasOne(d => d.ServiceCenter).WithMany(p => p.WarrantyHistories)
                 .HasForeignKey(d => d.ServiceCenterId)
                 .HasConstraintName("FK_WarrantyHistory_ServiceCenter");
+
+            entity.HasOne(d => d.Vehicle).WithMany()
+                .HasForeignKey(d => d.VehicleId)
+                .HasConstraintName("FK_WarrantyHistory_Vehicle");
         });
 
         OnModelCreatingPartial(modelBuilder);

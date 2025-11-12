@@ -35,5 +35,7 @@ public interface IWarrantyClaimRepository
     Task<IReadOnlyList<WarrantyHistory>> GetArchivedClaimsAsync(int userId, string role, CancellationToken cancellationToken = default);
 
     Task<WarrantyHistory?> GetArchivedClaimAsync(int historyId, CancellationToken cancellationToken = default);
+
+    Task RemoveUsedPartAsync(int usedPartId, int removedByUserId, CancellationToken cancellationToken = default);
 }
 

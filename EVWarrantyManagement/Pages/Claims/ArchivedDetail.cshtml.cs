@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using EVWarrantyManagement.BLL.Interfaces;
 using EVWarrantyManagement.BO.Models;
+using EVWarrantyManagement.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -13,11 +14,16 @@ public class ArchivedDetailModel : PageModel
 {
     private readonly IWarrantyClaimService _claimService;
     private readonly IPartService _partService;
+    private readonly IInvoicePdfBuilder _invoicePdfBuilder;
 
-    public ArchivedDetailModel(IWarrantyClaimService claimService, IPartService partService)
+    public ArchivedDetailModel(
+        IWarrantyClaimService claimService,
+        IPartService partService,
+        IInvoicePdfBuilder invoicePdfBuilder)
     {
         _claimService = claimService;
         _partService = partService;
+        _invoicePdfBuilder = invoicePdfBuilder;
     }
 
     public WarrantyHistory? History { get; private set; }
@@ -63,6 +69,36 @@ public class ArchivedDetailModel : PageModel
         await HydrateUsedPartsAsync(UsedParts);
 
         return Page();
+    }
+
+    public async Task<IActionResult> OnGetDownloadInvoiceAsync(int id)
+    {
+        if (!User.IsInRole("SC Staff") && !User.IsInRole("SC"))
+        {
+            return Forbid();
+        }
+
+        var history = await _claimService.GetArchivedClaimAsync(id);
+        if (history is null)
+        {
+            return NotFound();
+        }
+
+        var claim = await _claimService.GetClaimAsync(history.ClaimId);
+        if (claim?.CreatedByUserId != GetUserId())
+        {
+            return Forbid();
+        }
+
+        var usedParts = claim.UsedParts
+            .OrderByDescending(p => p.CreatedAt)
+            .ToList();
+        await HydrateUsedPartsAsync(usedParts);
+
+        var pdfBytes = _invoicePdfBuilder.Build(history, usedParts);
+        var fileName = $"claim-{history.ClaimId}-invoice.pdf";
+
+        return File(pdfBytes, "application/pdf", fileName);
     }
 
     private int GetUserId()

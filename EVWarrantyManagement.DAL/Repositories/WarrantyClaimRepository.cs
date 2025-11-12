@@ -166,6 +166,50 @@ public class WarrantyClaimRepository : IWarrantyClaimRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task RemoveUsedPartAsync(int usedPartId, int removedByUserId, CancellationToken cancellationToken = default)
+    {
+        var usedPart = await _context.UsedParts
+            .Include(up => up.Claim)
+            .FirstOrDefaultAsync(up => up.UsedPartId == usedPartId, cancellationToken);
+
+        if (usedPart is null)
+        {
+            throw new InvalidOperationException($"Used part {usedPartId} not found.");
+        }
+
+        var claim = usedPart.Claim;
+        if (claim is null)
+        {
+            claim = await _context.WarrantyClaims.FirstOrDefaultAsync(c => c.ClaimId == usedPart.ClaimId, cancellationToken)
+                ?? throw new InvalidOperationException($"Claim {usedPart.ClaimId} not found.");
+        }
+
+        var totalBefore = claim.TotalCost ?? 0m;
+        var partTotal = (usedPart.PartCost ?? 0m) * Math.Max(1, usedPart.Quantity);
+
+        _context.UsedParts.Remove(usedPart);
+
+        if (partTotal > 0)
+        {
+            var updatedTotal = totalBefore - partTotal;
+            claim.TotalCost = updatedTotal <= 0 ? 0 : updatedTotal;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _context.ClaimStatusLogs.Add(new ClaimStatusLog
+        {
+            ClaimId = usedPart.ClaimId,
+            OldStatus = claim.StatusCode,
+            NewStatus = claim.StatusCode,
+            ChangedByUserId = removedByUserId,
+            ChangedAt = DateTime.UtcNow,
+            Comment = $"Removed part {usedPart.PartId} x{usedPart.Quantity}"
+        });
+
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task CompleteClaimAsync(int claimId, int technicianId, DateOnly? completionDate, string? comment, CancellationToken cancellationToken = default)
     {
         var claim = await _context.WarrantyClaims.FirstOrDefaultAsync(c => c.ClaimId == claimId, cancellationToken);

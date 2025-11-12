@@ -129,4 +129,5 @@ wwwroot\uploads\3d36a384-c433-4d77-985c-e10bd124ef2e.jpg
 wwwroot\uploads\43e80aa3-18b8-4356-a64e-1d2550aa6b8b.jpg
 wwwroot\uploads\44399869-0bb4-43ce-96d2-9bd996208add.jpg
 wwwroot\uploads\aecfc400-14ce-42b9-bd2e-20234af8e899.png
+wwwroot\uploads\c7d72605-4dae-48b0-8ca7-16084b064b05.jpg
 wwwroot\uploads\f6441ecc-d65c-4332-a6f0-83f945bfdc49.png

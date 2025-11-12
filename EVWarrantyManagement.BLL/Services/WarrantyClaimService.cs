@@ -64,6 +64,11 @@ public class WarrantyClaimService : IWarrantyClaimService
         return _warrantyClaimRepository.AddUsedPartAsync(usedPart, addedByUserId, cancellationToken);
     }
 
+    public Task RemoveUsedPartAsync(int usedPartId, int removedByUserId, CancellationToken cancellationToken = default)
+    {
+        return _warrantyClaimRepository.RemoveUsedPartAsync(usedPartId, removedByUserId, cancellationToken);
+    }
+
     public Task CompleteClaimAsync(int claimId, int technicianUserId, DateOnly? completionDate, string? comment, CancellationToken cancellationToken = default)
     {
         return _warrantyClaimRepository.CompleteClaimAsync(claimId, technicianUserId, completionDate, comment, cancellationToken);

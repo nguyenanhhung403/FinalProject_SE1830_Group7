@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using EVWarrantyManagement.Services;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +36,9 @@ builder.Services.AddScoped<IPartService, PartService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IWarrantyClaimService, WarrantyClaimService>();
 builder.Services.AddScoped<IReportingService, ReportingService>();
+builder.Services.AddSingleton<IInvoicePdfBuilder, QuestPdfInvoiceBuilder>();
+
+QuestPDF.Settings.License = LicenseType.Community;
 
 builder.Services.Configure<N8nSettings>(builder.Configuration.GetSection("N8n"));
 builder.Services.AddHttpClient("n8n", (serviceProvider, client) =>

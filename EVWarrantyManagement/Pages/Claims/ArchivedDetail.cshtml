@@ -19,38 +19,51 @@
     return;
 }
 
-<h2 class="mb-3">Claim #@Model.History.ClaimId</h2>
+@{
+    var history = Model.History!;
+}
+
+<h2 class="mb-3">Claim #@history.ClaimId</h2>
+
+@if (User.IsInRole("SC Staff") || User.IsInRole("SC"))
+{
+    <div class="mb-3">
+        <a class="btn btn-outline-primary" asp-page-handler="DownloadInvoice" asp-route-id="@history.HistoryId">
+            <i class="bi bi-file-earmark-arrow-down"></i> Tải hóa đơn (PDF)
+        </a>
+    </div>
+}
 
 <div class="row g-3 mb-4">
     <div class="col-md-6">
         <dl class="row">
             <dt class="col-sm-4">Model</dt>
-            <dd class="col-sm-8">@((Model.History.Vehicle?.Model) ?? "N/A")</dd>
+            <dd class="col-sm-8">@((history.Vehicle?.Model) ?? "N/A")</dd>
             <dt class="col-sm-4">VIN</dt>
-            <dd class="col-sm-8">@Model.History.Vin</dd>
+            <dd class="col-sm-8">@history.Vin</dd>
             <dt class="col-sm-4">Service Center</dt>
-            <dd class="col-sm-8">@((Model.History.ServiceCenter?.Name) ?? $"#{Model.History.ServiceCenterId}")</dd>
+            <dd class="col-sm-8">@((history.ServiceCenter?.Name) ?? $"#{history.ServiceCenterId}")</dd>
             <dt class="col-sm-4">Completed By</dt>
-            <dd class="col-sm-8">@((Model.History.CompletedByUser?.FullName) ?? $"User #{Model.History.CompletedByUserId}")</dd>
+            <dd class="col-sm-8">@((history.CompletedByUser?.FullName) ?? $"User #{history.CompletedByUserId}")</dd>
         </dl>
     </div>
     <div class="col-md-6">
         <dl class="row">
             <dt class="col-sm-4">Completion Date</dt>
-            <dd class="col-sm-8">@Model.History.CompletionDate</dd>
+            <dd class="col-sm-8">@history.CompletionDate</dd>
             <dt class="col-sm-4">Total Cost</dt>
-            <dd class="col-sm-8">@Model.History.TotalCost?.ToString("C")</dd>
+            <dd class="col-sm-8">@history.TotalCost?.ToString("C")</dd>
             <dt class="col-sm-4">Archived At</dt>
-            <dd class="col-sm-8">@Model.History.ArchivedAt</dd>
+            <dd class="col-sm-8">@history.ArchivedAt</dd>
         </dl>
     </div>
 </div>
 
-@if (!string.IsNullOrWhiteSpace(Model.History.Note))
+@if (!string.IsNullOrWhiteSpace(history.Note))
 {
     <div class="mb-4">
         <h5>Note</h5>
-        <p>@Model.History.Note</p>
+        <p>@history.Note</p>
     </div>
 }
 

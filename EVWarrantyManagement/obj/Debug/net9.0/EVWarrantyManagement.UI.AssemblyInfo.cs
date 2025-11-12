@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("EVWarrantyManagement.UI")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+44ebe6184954b166af39e4c789bf33816b3d7003")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fe1b8706098619bcdaa153321994b045964114a1")]
 [assembly: System.Reflection.AssemblyProductAttribute("EVWarrantyManagement.UI")]
 [assembly: System.Reflection.AssemblyTitleAttribute("EVWarrantyManagement.UI")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

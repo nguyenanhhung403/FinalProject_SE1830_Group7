@@ -9,6 +9,7 @@
     bool isAdmin = User.IsInRole("Admin");
     var status = Model.Claim?.StatusCode ?? string.Empty;
     bool isCompletedStatus = string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "Archived", StringComparison.OrdinalIgnoreCase);
+    bool canManageParts = isTechnician && !isCompletedStatus;
 }
 
 @if (TempData["Success"] is string successMessage)
@@ -50,11 +51,15 @@
 <div class="table-responsive">
     <table class="table table-sm table-striped">
         <thead>
-            <tr>
+                <tr>
                 <th>Part</th>
                 <th>Qty</th>
                 <th>Cost</th>
                 <th>At</th>
+                    @if (canManageParts)
+                    {
+                        <th class="text-end">Actions</th>
+                    }
             </tr>
         </thead>
         <tbody>
@@ -76,6 +81,20 @@
                     <td>@p.Quantity</td>
                     <td>@p.PartCost</td>
                     <td>@p.CreatedAt</td>
+                    @if (canManageParts)
+                    {
+                        <td class="text-end">
+                            <form method="post"
+                                  asp-page-handler="DeleteUsedPart"
+                                  asp-route-id="@Model.Claim?.ClaimId"
+                                  asp-route-usedPartId="@p.UsedPartId"
+                                  onsubmit="return confirm('Xoá linh kiện này khỏi yêu cầu?');">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    }
                 </tr>
             }
         </tbody>
@@ -141,9 +160,31 @@
     <a class="btn btn-secondary" asp-page="Index">Back</a>
     @if (isEVM)
     {
-        <form method="post" asp-page-handler="Approve"><input type="hidden" name="id" value="@Model.ClaimId" /><button class="btn btn-success" type="submit">Approve</button></form>
-        <form method="post" asp-page-handler="Reject"><input type="hidden" name="id" value="@Model.ClaimId" /><button class="btn btn-danger" type="submit">Reject</button></form>
-        <form method="post" asp-page-handler="OnHold"><input type="hidden" name="id" value="@Model.ClaimId" /><button class="btn btn-warning" type="submit">On Hold</button></form>
+        var isPending = string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase);
+        var isOnHold = string.Equals(status, "OnHold", StringComparison.OrdinalIgnoreCase);
+        var isCompleted = string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase);
+        var isClosed = string.Equals(status, "Closed", StringComparison.OrdinalIgnoreCase);
+        var canApprove = isPending || isOnHold;
+        var showArchive = isCompleted;
+        var showEVMButtons = !isClosed && (isPending || canApprove || showArchive);
+        
+        @if (showEVMButtons)
+        {
+            @if (isPending)
+            {
+                <form method="post" asp-page-handler="Approve"><input type="hidden" name="id" value="@Model.ClaimId" /><button class="btn btn-success" type="submit">Approve</button></form>
+                <form method="post" asp-page-handler="Reject"><input type="hidden" name="id" value="@Model.ClaimId" /><button class="btn btn-danger" type="submit">Reject</button></form>
+                <form method="post" asp-page-handler="OnHold"><input type="hidden" name="id" value="@Model.ClaimId" /><button class="btn btn-warning" type="submit">On Hold</button></form>
+            }
+            else if (canApprove)
+            {
+                <form method="post" asp-page-handler="Approve"><input type="hidden" name="id" value="@Model.ClaimId" /><button class="btn btn-success" type="submit">Approve</button></form>
+            }
+            @if (showArchive)
+            {
+                <form method="post" asp-page-handler="Archive"><input type="hidden" name="id" value="@Model.ClaimId" /><button class="btn btn-outline-dark" type="submit">Archive</button></form>
+            }
+        }
     }
     @if (isTechnician)
     {
