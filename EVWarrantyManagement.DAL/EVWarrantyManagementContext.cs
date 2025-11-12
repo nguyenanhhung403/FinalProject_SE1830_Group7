@@ -21,6 +21,8 @@ public partial class EVWarrantyManagementContext : DbContext
 
     public virtual DbSet<ClaimStatusLog> ClaimStatusLogs { get; set; }
 
+    public virtual DbSet<ClaimMessage> ClaimMessages { get; set; }
+
     public virtual DbSet<Customer> Customers { get; set; }
 
     public virtual DbSet<Part> Parts { get; set; }
@@ -263,6 +265,36 @@ public partial class EVWarrantyManagementContext : DbContext
             entity.HasOne(d => d.ServiceCenter).WithMany(p => p.WarrantyHistories)
                 .HasForeignKey(d => d.ServiceCenterId)
                 .HasConstraintName("FK_WarrantyHistory_ServiceCenter");
+        });
+
+        modelBuilder.Entity<ClaimMessage>(entity =>
+        {
+            entity.HasKey(e => e.MessageId).HasName("PK__ClaimMes__C87C0C9C1234ABCD");
+
+            entity.ToTable("ClaimMessages", "ev");
+
+            entity.Property(e => e.Message)
+                .IsRequired()
+                .HasMaxLength(2000);
+
+            entity.Property(e => e.Timestamp).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.Property(e => e.IsRead).HasDefaultValue(false);
+
+            entity.HasOne(d => d.WarrantyClaim)
+                .WithMany()
+                .HasForeignKey(d => d.ClaimId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ClaimMessage_WarrantyClaim");
+
+            entity.HasOne(d => d.User)
+                .WithMany()
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ClaimMessage_User");
+
+            entity.HasIndex(e => e.ClaimId).HasDatabaseName("IX_ClaimMessage_ClaimId");
+            entity.HasIndex(e => e.Timestamp).HasDatabaseName("IX_ClaimMessage_Timestamp");
         });
 
         OnModelCreatingPartial(modelBuilder);

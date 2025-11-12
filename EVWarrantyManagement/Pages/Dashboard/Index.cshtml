@@ -38,7 +38,7 @@
 }
 
 <div class="table-responsive">
-    <table class="table table-striped align-middle">
+    <table id="dashboard-claims-table" class="table table-striped align-middle">
         <thead>
             <tr>
                 <th>ClaimID</th>
@@ -53,7 +53,7 @@
         <tbody>
         @foreach (var claim in Model.AllClaims)
         {
-            <tr>
+            <tr data-claim-id="@claim.ClaimId">
                 <td>@claim.ClaimId</td>
                 <td>@(claim.Vehicle?.Model ?? "N/A")</td>
                 <td>@claim.Vin</td>
@@ -69,3 +69,6 @@
     </table>
 </div>
 
+@section Scripts {
+    <script src="~/js/dashboard-realtime.js" asp-append-version="true"></script>
+}

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/EVWarrantyManagement.styles.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/signalr-styles.css" asp-append-version="true" />
 </head>
 <body>
     <header>
@@ -54,6 +55,7 @@
                         {
                             var username = User.Identity?.Name;
                             var role = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
+<!-- Notification Bell Icon -->                            <li class="nav-item d-flex align-items-center">                                <div class="notification-bell-container">                                    <a href="#" class="notification-bell" id="notification-bell" title="Notifications">                                        <i class="bi bi-bell-fill"></i>                                    </a>                                    <span class="notification-badge" id="notification-badge">0</span>                                </div>                            </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="userMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bi bi-person-circle"></i> @username <small class="text-muted">(@role)</small>
@@ -83,6 +85,16 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <!-- SignalR Client Library from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+
+    <!-- SignalR Connection Manager -->
+    <script src="~/js/signalr-connection.js" asp-append-version="true"></script>
+    <script src="~/js/notification-manager.js" asp-append-version="true"></script>
+
+    <!-- Include notification toast partial -->
+    <partial name="_NotificationToast" />
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>

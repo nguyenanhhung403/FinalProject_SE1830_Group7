@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.SignalR;
+using EVWarrantyManagement.UI.Hubs;
 
 namespace EVWarrantyManagement.Pages.Claims;
 
@@ -15,11 +17,13 @@ public class DetailsModel : PageModel
 {
     private readonly IWarrantyClaimService _claimService;
     private readonly IPartService _partService;
+    private readonly IHubContext<NotificationHub> _notificationHub;
 
-    public DetailsModel(IWarrantyClaimService claimService, IPartService partService)
+    public DetailsModel(IWarrantyClaimService claimService, IPartService partService, IHubContext<NotificationHub> notificationHub)
     {
         _claimService = claimService;
         _partService = partService;
+        _notificationHub = notificationHub;
     }
 
     [BindProperty]
@@ -114,7 +118,21 @@ public class DetailsModel : PageModel
         {
             return Forbid();
         }
+
+        var claim = await _claimService.GetClaimAsync(id);
         await _claimService.ApproveClaimAsync(id, GetUserId(), "Approved", null);
+
+        // Send real-time notification
+        var notificationData = new
+        {
+            ClaimId = id,
+            NewStatus = "Approved",
+            Message = $"Claim #{id} has been approved",
+            Type = "status_change"
+        };
+        await _notificationHub.Clients.Groups("SC Technician", "SC Staff", "SC")
+            .SendAsync("ReceiveClaimUpdate", notificationData);
+
         TempData["Success"] = "Approved.";
         return RedirectToPage(new { id });
     }
@@ -124,7 +142,20 @@ public class DetailsModel : PageModel
         {
             return Forbid();
         }
+
         await _claimService.RejectClaimAsync(id, GetUserId(), "Rejected");
+
+        // Send real-time notification
+        var notificationData = new
+        {
+            ClaimId = id,
+            NewStatus = "Rejected",
+            Message = $"Claim #{id} has been rejected",
+            Type = "status_change"
+        };
+        await _notificationHub.Clients.Groups("SC Technician", "SC Staff", "SC")
+            .SendAsync("ReceiveClaimUpdate", notificationData);
+
         TempData["Success"] = "Rejected.";
         return RedirectToPage(new { id });
     }
@@ -157,6 +188,18 @@ public class DetailsModel : PageModel
         }
         var note = string.IsNullOrWhiteSpace(technicianNote) ? "Work completed" : technicianNote;
         await _claimService.CompleteClaimAsync(id, GetUserId(), DateOnly.FromDateTime(DateTime.UtcNow), note);
+
+        // Send real-time notification
+        var notificationData = new
+        {
+            ClaimId = id,
+            NewStatus = "Completed",
+            Message = $"Claim #{id} repair has been completed",
+            Type = "status_change"
+        };
+        await _notificationHub.Clients.Groups("EVM Staff", "Admin", "SC Staff")
+            .SendAsync("ReceiveClaimUpdate", notificationData);
+
         TempData["Success"] = "Completed.";
         return RedirectToPage(new { id });
     }
@@ -179,6 +222,18 @@ public class DetailsModel : PageModel
         }
         var note = string.IsNullOrWhiteSpace(technicianNote) ? "Start repair" : technicianNote;
         await _claimService.StartRepairAsync(id, GetUserId(), note);
+
+        // Send real-time notification
+        var notificationData = new
+        {
+            ClaimId = id,
+            NewStatus = "InProgress",
+            Message = $"Claim #{id} repair has started",
+            Type = "status_change"
+        };
+        await _notificationHub.Clients.Groups("EVM Staff", "Admin", "SC Staff")
+            .SendAsync("ReceiveClaimUpdate", notificationData);
+
         TempData["Success"] = "Started repair.";
         return RedirectToPage(new { id });
     }

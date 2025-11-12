@@ -68,7 +68,7 @@
 }
 
 <div class="table-responsive">
-    <table class="table table-striped align-middle">
+    <table id="claims-table" class="table table-striped align-middle">
         <thead>
             <tr>
                 <th>ClaimID</th>
@@ -85,7 +85,7 @@
         {
             var status = item.StatusCode ?? string.Empty;
             bool isCompletedStatus = string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase) || string.Equals(status, "Archived", StringComparison.OrdinalIgnoreCase);
-            <tr>
+            <tr data-claim-id="@item.ClaimId">
                 <td>@item.ClaimId</td>
                 <td>@(item.Vehicle?.Model ?? "N/A")</td>
                 <td>@item.Vin</td>
@@ -128,3 +128,6 @@
     </table>
 </div>
 
+@section Scripts {
+    <script src="~/js/claims-realtime.js" asp-append-version="true"></script>
+}
