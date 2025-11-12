@@ -132,6 +132,11 @@ class ClaimsRealTime {
         }
 
         this.handleNotification(data.Message, notificationType);
+
+        // Increment notification bell counter
+        if (window.notificationManager) {
+            window.notificationManager.increment();
+        }
     }
 
     /**
@@ -145,6 +150,11 @@ class ClaimsRealTime {
 
         // Show notification
         this.handleNotification(data.Message, 'info');
+
+        // Increment notification bell counter
+        if (window.notificationManager) {
+            window.notificationManager.increment();
+        }
     }
 
     /**

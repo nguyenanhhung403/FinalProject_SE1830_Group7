@@ -429,3 +429,62 @@
 #chat-messages::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
+
+/* ===== Notification Bell ===== */
+.notification-bell-container {
+    position: relative;
+    display: inline-block;
+    margin-right: 15px;
+}
+
+.notification-bell {
+    font-size: 1.5rem;
+    color: #6c757d;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    text-decoration: none;
+}
+
+.notification-bell:hover {
+    color: #495057;
+}
+
+.notification-badge {
+    position: absolute;
+    top: -8px;
+    right: -10px;
+    background-color: #dc3545;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    min-width: 18px;
+    height: 18px;
+    display: none;
+    text-align: center;
+    line-height: 14px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Shake animation for notification bell */
+@keyframes bellShake {
+    0%, 100% { transform: rotate(0deg); }
+    10%, 30%, 50%, 70%, 90% { transform: rotate(-10deg); }
+    20%, 40%, 60%, 80% { transform: rotate(10deg); }
+}
+
+.notification-bell-shake {
+    animation: bellShake 0.5s ease-in-out;
+}
+
+/* Pulse animation for badge */
+@keyframes badgePulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.notification-badge-pulse {
+    animation: badgePulse 0.5s ease-in-out;
+}

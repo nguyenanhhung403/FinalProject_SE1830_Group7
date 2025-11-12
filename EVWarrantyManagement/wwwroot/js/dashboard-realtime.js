@@ -96,6 +96,11 @@ class DashboardRealTime {
         // Show notification
         this.handleNotification(data.Message, 'info');
 
+        // Increment notification bell counter
+        if (window.notificationManager) {
+            window.notificationManager.increment();
+        }
+
         // Increment pending claims counter
         const pendingCounter = document.getElementById('pending-claims-count');
         if (pendingCounter) {
@@ -141,6 +146,11 @@ class DashboardRealTime {
         }
 
         this.handleNotification(data.Message, notificationType);
+
+        // Increment notification bell counter
+        if (window.notificationManager) {
+            window.notificationManager.increment();
+        }
 
         // Refresh dashboard statistics
         if (typeof refreshDashboardStats === 'function') {

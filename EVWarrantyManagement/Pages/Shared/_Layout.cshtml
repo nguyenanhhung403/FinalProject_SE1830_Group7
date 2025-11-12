@@ -55,6 +55,7 @@
                         {
                             var username = User.Identity?.Name;
                             var role = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
+<!-- Notification Bell Icon -->                            <li class="nav-item d-flex align-items-center">                                <div class="notification-bell-container">                                    <a href="#" class="notification-bell" id="notification-bell" title="Notifications">                                        <i class="bi bi-bell-fill"></i>                                    </a>                                    <span class="notification-badge" id="notification-badge">0</span>                                </div>                            </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" id="userMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bi bi-person-circle"></i> @username <small class="text-muted">(@role)</small>
@@ -90,6 +91,7 @@
 
     <!-- SignalR Connection Manager -->
     <script src="~/js/signalr-connection.js" asp-append-version="true"></script>
+    <script src="~/js/notification-manager.js" asp-append-version="true"></script>
 
     <!-- Include notification toast partial -->
     <partial name="_NotificationToast" />
