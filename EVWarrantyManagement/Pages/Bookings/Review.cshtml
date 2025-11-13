@@ -1,0 +1,362 @@
+@page
+@model EVWarrantyManagement.Pages.Bookings.ReviewModel
+@using System.Text.Json
+@{
+    ViewData["Title"] = "Review Service Bookings";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">Service Booking Requests</h2>
+        <p class="text-muted mb-0">Review, approve, or adjust customer appointments.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-outline-secondary" asp-page="/Bookings/Calendar">
+            <i class="bi bi-calendar3 me-1"></i>Calendar View
+        </a>
+    </div>
+</div>
+
+@if (TempData["Success"] is string successMessage)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>@successMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["Error"] is string errorMessage)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>@errorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-clock-history me-2"></i>Pending Bookings (@Model.PendingBookings.Count)
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.PendingBookings.Count == 0)
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-clipboard-check" style="font-size: 3rem;"></i>
+                <p class="mt-3 text-muted">No pending bookings at the moment.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Booking</th>
+                            <th>Customer</th>
+                            <th>Vehicle</th>
+                            <th>Service Center</th>
+                            <th>Preferred Time</th>
+                            <th>Service Type</th>
+                            <th>Notes</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var booking in Model.PendingBookings)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>#@booking.ServiceBookingId</strong><br />
+                                    <small class="text-muted">Created @booking.CreatedAt.ToLocalTime():g</small>
+                                </td>
+                                <td>
+                                    <div>@booking.Customer?.FullName</div>
+                                    <small class="text-muted">@booking.Customer?.Email</small>
+                                </td>
+                                <td>
+                                    <div><code>@booking.Vehicle?.Vin</code></div>
+                                    <small class="text-muted">@booking.Vehicle?.Model</small>
+                                </td>
+                                <td>
+                                    <div>@booking.ServiceCenter?.Name</div>
+                                </td>
+                                <td>
+                                    <div>@booking.PreferredStart.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                                    <small class="text-muted">Duration: @booking.EstimatedDurationMinutes mins</small>
+                                </td>
+                                <td>@booking.ServiceType</td>
+                                <td style="max-width: 240px;">
+                                    <small class="text-muted text-wrap">@booking.CustomerNote</small>
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    <button class="btn btn-sm btn-success"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#approveModal"
+                                            data-booking-id="@booking.ServiceBookingId"
+                                            data-service-center-id="@booking.ServiceCenterId"
+                                            data-preferred="@booking.PreferredStart.ToString("o")"
+                                            data-duration="@booking.EstimatedDurationMinutes">
+                                        <i class="bi bi-check me-1"></i>Approve
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rejectModal" data-booking-id="@booking.ServiceBookingId">
+                                        <i class="bi bi-x-circle me-1"></i>Reject
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Approve Modal -->
+<div class="modal fade" id="approveModal" tabindex="-1" aria-labelledby="approveModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Approve">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="approveModalLabel"><i class="bi bi-check-circle me-2"></i>Approve Booking</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input asp-for="ApproveInput.BookingId" type="hidden" id="approveBookingId" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 small" role="alert"></div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Confirmed Date</label>
+                            <input asp-for="ApproveInput.ConfirmedDate"
+                                   type="date"
+                                   class="form-control bg-light"
+                                   id="ApproveInput_ConfirmedDate"
+                                   readonly
+                                   onfocus="this.blur();" />
+                            <span asp-validation-for="ApproveInput.ConfirmedDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Confirmed Time</label>
+                            <input asp-for="ApproveInput.ConfirmedTime"
+                                   type="time"
+                                   class="form-control bg-light"
+                                   id="ApproveInput_ConfirmedTime"
+                                   readonly
+                                   onfocus="this.blur();" />
+                            <span asp-validation-for="ApproveInput.ConfirmedTime" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Assign Technician</label>
+                            <select asp-for="ApproveInput.AssignedTechnicianId" class="form-select" id="technicianSelect">
+                                <option value="">-- Select Technician --</option>
+                            </select>
+                            <div class="form-text">Technicians filtered by selected service center.</div>
+                            <div class="text-muted small" id="technicianEmptyState" style="display:none;">
+                                No active technicians available for this service center.
+                            </div>
+                            <span asp-validation-for="ApproveInput.AssignedTechnicianId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Duration (minutes)</label>
+                            <input asp-for="ApproveInput.DurationMinutes"
+                                   type="number"
+                                   class="form-control bg-light"
+                                   min="30"
+                                   max="480"
+                                   step="15"
+                                   id="ApproveInput_DurationMinutes"
+                                   readonly
+                                   onfocus="this.blur();" />
+                            <span asp-validation-for="ApproveInput.DurationMinutes" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Internal Note</label>
+                            <textarea asp-for="ApproveInput.InternalNote" class="form-control" rows="3" placeholder="Add any special instructions"></textarea>
+                            <span asp-validation-for="ApproveInput.InternalNote" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Confirm Approval</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-labelledby="rejectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-md modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" asp-page-handler="Reject">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="rejectModalLabel"><i class="bi bi-x-circle me-2"></i>Reject Booking</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input asp-for="RejectInput.BookingId" type="hidden" id="rejectBookingId" />
+                    <div class="mb-3">
+                        <label class="form-label">Reason</label>
+                        <textarea asp-for="RejectInput.RejectionReason" class="form-control" rows="4" placeholder="Provide reason for rejection" required></textarea>
+                        <span asp-validation-for="RejectInput.RejectionReason" class="text-danger small"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject Booking</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const api = {
+            buildAvailableTechniciansUrl(bookingId, dateValue, timeValue, durationMinutes) {
+                const params = new URLSearchParams({
+                    bookingId,
+                    date: dateValue,
+                    time: `${timeValue}:00`,
+                    durationMinutes
+                });
+                return `?handler=AvailableTechnicians&${params.toString()}`;
+            }
+        };
+
+        const technicianSelect = document.getElementById('technicianSelect');
+        const emptyState = document.getElementById('technicianEmptyState');
+        const dateInput = document.getElementById('ApproveInput_ConfirmedDate');
+        const timeInput = document.getElementById('ApproveInput_ConfirmedTime');
+        const durationInput = document.getElementById('ApproveInput_DurationMinutes');
+
+        async function refreshTechnicians(bookingId) {
+
+            if (!technicianSelect || !dateInput || !timeInput || !durationInput) {
+                return;
+            }
+
+            const dateValue = dateInput.value;
+            const timeValue = timeInput.value;
+            const durationValue = durationInput.value || "60";
+
+            if (!dateValue || !timeValue) {
+                Array.from(technicianSelect.options)
+                    .filter((_, index) => index !== 0)
+                    .forEach(option => option.remove());
+                if (emptyState) {
+                    emptyState.style.display = "block";
+                    emptyState.textContent = "Select date and time to see available technicians.";
+                }
+                return;
+            }
+
+            try {
+                const response = await fetch(api.buildAvailableTechniciansUrl(bookingId, dateValue, timeValue, durationValue));
+                const payload = await response.json();
+
+                Array.from(technicianSelect.options)
+                    .filter((_, index) => index !== 0)
+                    .forEach(option => option.remove());
+
+                if (!payload.success || !payload.technicians || payload.technicians.length === 0) {
+                    if (emptyState) {
+                        emptyState.style.display = "block";
+                        emptyState.textContent = payload.message ?? "No technicians available for this time slot.";
+                    }
+                    return;
+                }
+
+                payload.technicians.forEach(t => {
+                    const option = document.createElement('option');
+                    option.value = t.id;
+                    option.textContent = t.name;
+                    technicianSelect.appendChild(option);
+                });
+
+                if (emptyState) {
+                    emptyState.style.display = "none";
+                }
+            } catch (err) {
+                console.error('Failed to fetch available technicians', err);
+                if (emptyState) {
+                    emptyState.style.display = "block";
+                    emptyState.textContent = "Unable to load technicians right now.";
+                }
+            }
+        }
+
+        const approveModal = document.getElementById('approveModal');
+        approveModal?.addEventListener('show.bs.modal', event => {
+            const button = event.relatedTarget;
+            const bookingId = button?.getAttribute('data-booking-id');
+            const preferred = button?.getAttribute('data-preferred');
+            const duration = button?.getAttribute('data-duration') ?? "60";
+            const input = document.getElementById('approveBookingId');
+            if (input && bookingId) {
+                input.value = bookingId;
+            }
+
+            if (preferred) {
+                const preferredDate = new Date(preferred);
+                if (!isNaN(preferredDate)) {
+                    if (dateInput) {
+                        dateInput.value = preferredDate.toISOString().slice(0, 10);
+                    }
+                    if (timeInput) {
+                        timeInput.value = preferredDate.toTimeString().slice(0, 5);
+                    }
+                }
+            }
+
+            if (bookingId) {
+                if (durationInput && !durationInput.value) {
+                    durationInput.value = duration;
+                }
+                approveModal.setAttribute('data-active-booking-id', bookingId);
+                refreshTechnicians(bookingId);
+            }
+        });
+
+        approveModal?.addEventListener('hidden.bs.modal', () => {
+            approveModal.removeAttribute('data-active-booking-id');
+            if (technicianSelect) {
+                technicianSelect.selectedIndex = 0;
+            }
+        });
+
+        dateInput?.addEventListener('change', () => {
+            const bookingId = approveModal?.getAttribute('data-active-booking-id');
+            if (bookingId) {
+                refreshTechnicians(bookingId);
+            }
+        });
+
+        timeInput?.addEventListener('change', () => {
+            const bookingId = approveModal?.getAttribute('data-active-booking-id');
+            if (bookingId) {
+                refreshTechnicians(bookingId);
+            }
+        });
+
+        durationInput?.addEventListener('change', () => {
+            const bookingId = approveModal?.getAttribute('data-active-booking-id');
+            if (bookingId) {
+                refreshTechnicians(bookingId);
+            }
+        });
+
+        const rejectModal = document.getElementById('rejectModal');
+        rejectModal?.addEventListener('show.bs.modal', event => {
+            const button = event.relatedTarget;
+            const bookingId = button?.getAttribute('data-booking-id');
+            const input = document.getElementById('rejectBookingId');
+            if (input && bookingId) {
+                input.value = bookingId;
+            }
+        });
+    </script>
+}

@@ -20,4 +20,8 @@ public partial class ServiceCenter
     public virtual ICollection<WarrantyClaim> WarrantyClaims { get; set; } = new List<WarrantyClaim>();
 
     public virtual ICollection<WarrantyHistory> WarrantyHistories { get; set; } = new List<WarrantyHistory>();
+
+    public virtual ICollection<ServiceCenterTechnician> ServiceCenterTechnicians { get; set; } = new List<ServiceCenterTechnician>();
+
+    public virtual ICollection<ServiceBooking> ServiceBookings { get; set; } = new List<ServiceBooking>();
 }

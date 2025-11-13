@@ -31,56 +31,106 @@
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
-                            if (User.IsInRole("Admin") || User.IsInRole("EVM Staff") || User.IsInRole("EVM"))
+                            if (User.IsInRole("Customer"))
                             {
                                 <li class="nav-item">
-                                    <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Dashboard/Index" ? "active" : "")" asp-page="/Dashboard/Index">
-                                        <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                                    <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Bookings") == true ? "active" : "")" asp-page="/Bookings/Create">
+                                        <i class="bi bi-calendar-plus me-1"></i> Book Service
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Bookings/History" ? "active" : "")" asp-page="/Bookings/History">
+                                        <i class="bi bi-clock-history me-1"></i> Booking History
                                     </a>
                                 </li>
                             }
-                            <li class="nav-item">
-                                <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Claims") == true ? "active" : "")" asp-page="/Claims/Index">
-                                    <i class="bi bi-file-earmark-text me-1"></i> Claims
-                                </a>
-                            </li>
-
-                            if (User.IsInRole("Admin"))
+                            else
                             {
+                                if (User.IsInRole("Admin") || User.IsInRole("EVM Staff") || User.IsInRole("EVM"))
+                                {
+                                    <li class="nav-item">
+                                        <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString() == "/Dashboard/Index" ? "active" : "")" asp-page="/Dashboard/Index">
+                                            <i class="bi bi-speedometer2 me-1"></i> Dashboard
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Bookings/Review") == true ? "active" : "")" asp-page="/Bookings/Review">
+                                            <i class="bi bi-journal-check me-1"></i> Review Bookings
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Bookings/All") == true ? "active" : "")" asp-page="/Bookings/All">
+                                            <i class="bi bi-collection me-1"></i> All Bookings
+                                        </a>
+                                    </li>
+                                }
                                 <li class="nav-item">
-                                    <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Vehicles") == true ? "active" : "")" asp-page="/Vehicles/Index">
-                                        <i class="bi bi-car-front me-1"></i> Vehicles
+                                    <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Claims") == true ? "active" : "")" asp-page="/Claims/Index">
+                                        <i class="bi bi-file-earmark-text me-1"></i> Claims
                                     </a>
                                 </li>
-                                <li class="nav-item">
-                                    <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Customers") == true ? "active" : "")" asp-page="/Customers/Index">
-                                        <i class="bi bi-people me-1"></i> Customers
-                                    </a>
-                                </li>
-                            }
 
-                            if (User.IsInRole("Admin") || User.IsInRole("SC Technician"))
-                            {
-                                <li class="nav-item">
-                                    <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Parts") == true ? "active" : "")" asp-page="/Parts/Index">
-                                        <i class="bi bi-gear me-1"></i> Parts
-                                    </a>
-                                </li>
-                            }
+                                if (User.IsInRole("Admin"))
+                                {
+                                    <li class="nav-item">
+                                        <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Vehicles") == true ? "active" : "")" asp-page="/Vehicles/Index">
+                                            <i class="bi bi-car-front me-1"></i> Vehicles
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Customers") == true ? "active" : "")" asp-page="/Customers/Index">
+                                            <i class="bi bi-people me-1"></i> Customers
+                                        </a>
+                                    </li>
+                                }
 
-                            if (User.IsInRole("Admin") || User.IsInRole("EVM Staff") || User.IsInRole("EVM"))
-                            {
-                                <li class="nav-item">
-                                    <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Reports") == true ? "active" : "")" asp-page="/Reports/Index">
-                                        <i class="bi bi-graph-up me-1"></i> Reports
-                                    </a>
-                                </li>
+                                if (User.IsInRole("Admin") || User.IsInRole("SC Technician"))
+                                {
+                                    <li class="nav-item">
+                                        <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Parts") == true ? "active" : "")" asp-page="/Parts/Index">
+                                            <i class="bi bi-gear me-1"></i> Parts
+                                        </a>
+                                    </li>
+                                }
+
+                                if (User.IsInRole("SC Technician"))
+                                {
+                                    <li class="nav-item">
+                                        <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Bookings/MyTasks") == true ? "active" : "")" asp-page="/Bookings/MyTasks">
+                                            <i class="bi bi-tools me-1"></i> My Tasks
+                                        </a>
+                                    </li>
+                                }
+
+                                if (User.IsInRole("Admin") || User.IsInRole("EVM Staff") || User.IsInRole("EVM"))
+                                {
+                        <li class="nav-item">
+                                        <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/ServiceCenters") == true ? "active" : "")" asp-page="/ServiceCenters/Index">
+                                            <i class="bi bi-building me-1"></i> Service Centers
+                                        </a>
+                        </li>
+                        <li class="nav-item">
+                                        <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Reports") == true ? "active" : "")" asp-page="/Reports/Index">
+                                            <i class="bi bi-graph-up me-1"></i> Reports
+                                        </a>
+                                    </li>
+                                }
+
+                                if (User.IsInRole("Admin") || User.IsInRole("EVM Staff") || User.IsInRole("EVM") || User.IsInRole("SC Technician") || User.IsInRole("SC"))
+                                {
+                                    <li class="nav-item">
+                                        <a class="nav-link @(ViewContext.RouteData.Values["page"]?.ToString()?.StartsWith("/Inventory") == true ? "active" : "")" asp-page="/Inventory/Index">
+                                            <i class="bi bi-box-seam me-1"></i> Inventory
+                                        </a>
+                                    </li>
+                                }
                             }
                         }
                     </ul>
                     <ul class="navbar-nav ms-auto">
                         @if (User?.Identity?.IsAuthenticated ?? false)
                         {
+                            <partial name="_NotificationPanel" />
                             var username = User.Identity?.Name;
                             var role = User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value;
                             <li class="nav-item dropdown">
@@ -106,7 +156,7 @@
                                 <a class="nav-link" asp-area="" asp-page="/Account/Login">
                                     <i class="bi bi-box-arrow-in-right me-1"></i> Sign in
                                 </a>
-                            </li>
+                        </li>
                         }
                     </ul>
                 </div>
@@ -114,8 +164,8 @@
         </nav>
     </header>
     <main class="container py-4 fade-in">
-        @RenderBody()
-    </main>
+            @RenderBody()
+        </main>
 
     <footer class="text-center py-4">
         <div class="container">
@@ -136,7 +186,12 @@
     <!-- SignalR Real-Time Scripts -->
     <script src="~/js/dashboard-realtime.js" asp-append-version="true"></script>
     <script src="~/js/claims-realtime.js" asp-append-version="true"></script>
+    <script src="~/js/bookings-realtime.js" asp-append-version="true"></script>
+    <script src="~/js/parts-realtime.js" asp-append-version="true"></script>
+    <script src="~/js/inventory-realtime.js" asp-append-version="true"></script>
+    <script src="~/js/servicecenters-realtime.js" asp-append-version="true"></script>
     <script src="~/js/chat.js" asp-append-version="true"></script>
+    <script src="~/js/notifications.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)

@@ -19,10 +19,12 @@ public class IndexModel : PageModel
     public int Year { get; private set; } = DateTime.UtcNow.Year;
     public int TotalClaims => ByStatus.Values.Sum();
     public decimal TotalRevenue { get; private set; }
+    public decimal AverageClaimValue => TotalClaims > 0 ? TotalRevenue / TotalClaims : 0;
     public IReadOnlyDictionary<string, int> ByStatus { get; private set; } = new Dictionary<string, int>();
     public IReadOnlyDictionary<string, int> ByModel { get; private set; } = new Dictionary<string, int>();
     public IReadOnlyDictionary<string, int> ByMonth { get; private set; } = new Dictionary<string, int>();
     public IReadOnlyDictionary<string, decimal> RevenueByMonth { get; private set; } = new Dictionary<string, decimal>();
+    public IReadOnlyDictionary<string, decimal> RevenueByServiceCenter { get; private set; } = new Dictionary<string, decimal>();
 
     public int GetStatus(string key) => ByStatus.TryGetValue(key, out var v) ? v : 0;
 
@@ -34,6 +36,7 @@ public class IndexModel : PageModel
         ByMonth = await _reportingService.GetClaimCountsByMonthAsync(Year);
         TotalRevenue = await _reportingService.GetTotalRevenueAsync();
         RevenueByMonth = await _reportingService.GetRevenueByMonthAsync(Year);
+        RevenueByServiceCenter = await _reportingService.GetRevenueByServiceCenterAsync(Year);
     }
 
     public async Task<FileResult> OnPostExportCsvAsync()

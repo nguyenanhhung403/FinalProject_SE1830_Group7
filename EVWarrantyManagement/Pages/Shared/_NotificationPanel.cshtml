@@ -1,0 +1,37 @@
+@using System.Security.Claims
+@{
+    var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    var isEVM = User.IsInRole("EVM Staff") || User.IsInRole("EVM");
+    var isAdmin = User.IsInRole("Admin");
+    var isTechnician = User.IsInRole("SC Technician") || User.IsInRole("SC");
+}
+
+@if (User?.Identity?.IsAuthenticated ?? false)
+{
+    <li class="nav-item dropdown position-relative">
+        <a class="nav-link position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-bell" style="font-size: 1.25rem;"></i>
+            <span id="notificationBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="display: none; font-size: 0.65rem;">
+                0
+            </span>
+        </a>
+        <ul class="dropdown-menu dropdown-menu-end shadow-lg notification-dropdown" style="width: 350px; max-height: 500px; overflow-y: auto;" aria-labelledby="notificationDropdown">
+            <li>
+                <h6 class="dropdown-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-bell me-1"></i>Notifications</span>
+                    <button class="btn btn-sm btn-link text-decoration-none p-0" id="markAllReadBtn" style="font-size: 0.75rem;">Mark all read</button>
+                </h6>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+                <div id="notificationsList" class="px-2">
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                        <p class="mb-0 mt-2">No notifications</p>
+                    </div>
+                </div>
+            </li>
+        </ul>
+    </li>
+}
+

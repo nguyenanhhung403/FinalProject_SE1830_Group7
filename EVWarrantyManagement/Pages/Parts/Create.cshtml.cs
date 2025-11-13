@@ -1,9 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using EVWarrantyManagement.BLL.Interfaces;
 using EVWarrantyManagement.BO.Models;
+using EVWarrantyManagement.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.SignalR;
 
 namespace EVWarrantyManagement.Pages.Parts;
 
@@ -11,10 +13,12 @@ namespace EVWarrantyManagement.Pages.Parts;
 public class CreateModel : PageModel
 {
     private readonly IPartService _partService;
+    private readonly IHubContext<NotificationHub> _notificationHub;
 
-    public CreateModel(IPartService partService)
+    public CreateModel(IPartService partService, IHubContext<NotificationHub> notificationHub)
     {
         _partService = partService;
+        _notificationHub = notificationHub;
     }
 
     [BindProperty]
@@ -52,7 +56,25 @@ public class CreateModel : PageModel
             PartName = Input.PartName,
             UnitPrice = Input.UnitPrice
         };
-        await _partService.CreatePartAsync(part);
+        var createdPart = await _partService.CreatePartAsync(part);
+        
+        // Send notification
+        var notificationPayload = new
+        {
+            Type = "part_created",
+            Title = "New Part Created",
+            Message = $"New part {part.PartName} ({part.PartCode}) has been created",
+            PartId = createdPart.PartId,
+            PartName = part.PartName,
+            PartCode = part.PartCode
+        };
+
+        await _notificationHub.Clients.Groups("Admin", "EVM Staff", "EVM")
+            .SendAsync("ReceiveNotification", notificationPayload);
+
+        await _notificationHub.Clients.Group($"Part_{createdPart.PartId}")
+            .SendAsync("ReceivePartUpdate", notificationPayload);
+
         TempData["Success"] = "Part created.";
         return RedirectToPage("Index");
     }

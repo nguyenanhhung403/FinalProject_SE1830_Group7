@@ -1,0 +1,203 @@
+@page
+@model EVWarrantyManagement.Pages.ServiceCenters.DetailsModel
+@{
+    ViewData["Title"] = "Service Center Details";
+}
+
+<nav aria-label="breadcrumb" class="mb-2">
+    <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a asp-page="/Index"><i class="bi bi-house me-1"></i>Dashboard</a></li>
+        <li class="breadcrumb-item"><a asp-page="Index">Service Centers</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Details</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h2 class="mb-0" style="font-size: 1.5rem;">
+        <i class="bi bi-building me-2"></i>@Model.ServiceCenter?.Name
+    </h2>
+    <a class="btn btn-sm btn-outline-secondary" asp-page="Index">
+        <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+</div>
+
+@if (TempData["Success"] is string sMsg)
+{
+    <div class="alert alert-success alert-dismissible fade show py-2 mb-2" role="alert">
+        <i class="bi bi-check-circle me-2"></i><small>@sMsg</small>
+        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["Error"] is string eMsg)
+{
+    <div class="alert alert-danger alert-dismissible fade show py-2 mb-2" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i><small>@eMsg</small>
+        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Model.ServiceCenter != null)
+{
+    <div class="row mb-3">
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Total Claims</h5>
+                    <h2 class="mb-0">@Model.Stats.TotalClaims</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Active Claims</h5>
+                    <h2 class="mb-0 text-primary">@Model.Stats.ActiveClaims</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Completed (This Month)</h5>
+                    <h2 class="mb-0 text-success">@Model.Stats.CompletedClaimsThisMonth</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm">
+                <div class="card-body text-center">
+                    <h5 class="card-title text-muted">Technicians</h5>
+                    <h2 class="mb-0 text-info">@Model.Stats.AssignedTechniciansCount</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Information</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Address:</strong> @(Model.ServiceCenter.Address ?? "N/A")</p>
+                    <p><strong>Contact Name:</strong> @(Model.ServiceCenter.ContactName ?? "N/A")</p>
+                    <p><strong>Contact Phone:</strong> @(Model.ServiceCenter.ContactPhone ?? "N/A")</p>
+                    <p><strong>Created:</strong> @Model.ServiceCenter.CreatedAt.ToString("MM/dd/yyyy")</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-people me-2"></i>Assigned Technicians</h5>
+                    @if ((User.IsInRole("Admin") || User.IsInRole("EVM Staff") || User.IsInRole("EVM")) && Model.AvailableTechnicians.Any())
+                    {
+                        <form method="post" asp-page-handler="AssignTechnician" class="d-flex gap-2">
+                            <input type="hidden" name="id" value="@Model.ServiceCenter.ServiceCenterId" />
+                            <select name="SelectedTechnicianId" class="form-select form-select-sm" style="width: auto;">
+                                <option value="">Select Technician...</option>
+                                @foreach (var tech in Model.AvailableTechnicians)
+                                {
+                                    <option value="@tech.UserId">@tech.FullName (@tech.Username)</option>
+                                }
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                <i class="bi bi-plus-circle me-1"></i>Assign
+                            </button>
+                        </form>
+                    }
+                </div>
+                <div class="card-body">
+                    @if (Model.Technicians.Any())
+                    {
+                        <div class="list-group">
+                            @foreach (var tech in Model.Technicians)
+                            {
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>@tech.User.FullName</strong>
+                                        <br />
+                                        <small class="text-muted">@tech.User.Username (@tech.User.Role.RoleName)</small>
+                                        <br />
+                                        <small class="text-muted">Assigned: @tech.AssignedAt.ToString("MM/dd/yyyy")</small>
+                                    </div>
+                                    @if (User.IsInRole("Admin") || User.IsInRole("EVM Staff") || User.IsInRole("EVM"))
+                                    {
+                                        <form method="post" asp-page-handler="UnassignTechnician" class="d-inline">
+                                            <input type="hidden" name="id" value="@Model.ServiceCenter.ServiceCenterId" />
+                                            <input type="hidden" name="userId" value="@tech.UserId" />
+                                            <button type="submit" class="btn btn-xs btn-outline-danger" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+                                                <i class="bi bi-x-circle"></i> Unassign
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No technicians assigned.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Claims</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Claim ID</th>
+                            <th>VIN</th>
+                            <th>Status</th>
+                            <th>Technician</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var claim in Model.Claims)
+                        {
+                            <tr>
+                                <td><strong>#@claim.ClaimId</strong></td>
+                                <td><code>@claim.Vin</code></td>
+                                <td><span class="badge bg-secondary">@claim.StatusCode</span></td>
+                                <td>@(claim.Technician?.FullName ?? "Not assigned")</td>
+                                <td>
+                                    <a class="btn btn-xs btn-outline-primary" asp-page="/Claims/Details" asp-route-id="@claim.ClaimId" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Ensure service centers real-time is initialized for this service center
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.ServiceCentersRealTime) {
+                var serviceCenterId = @(Model.ServiceCenter?.ServiceCenterId ?? 0);
+                if (serviceCenterId > 0) {
+                    if (!window.serviceCentersRealTime || !window.serviceCentersRealTime.isInitialized) {
+                        window.serviceCentersRealTime = new ServiceCentersRealTime();
+                        window.serviceCentersRealTime.initialize(serviceCenterId);
+                    }
+                }
+            }
+        });
+    </script>
+}
+

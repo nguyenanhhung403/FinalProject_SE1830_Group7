@@ -118,6 +118,9 @@ public class CreateModel : PageModel
                 .AsNoTracking()
                 .FirstOrDefaultAsync(sc => sc.ServiceCenterId == createdClaim.ServiceCenterId);
 
+            var message = $"New pending claim #{createdClaim.ClaimId} created for {vehicle.Model ?? "Vehicle"} (VIN: {createdClaim.Vin}) from {serviceCenter?.Name ?? "Service Center"}";
+
+            // Send as ReceiveNewClaim
             await _notificationHub.Clients.Groups("EVM Staff", "EVM", "Admin")
                 .SendAsync("ReceiveNewClaim", new
                 {
@@ -125,7 +128,17 @@ public class CreateModel : PageModel
                     Vin = createdClaim.Vin,
                     VehicleModel = vehicle.Model,
                     ServiceCenterName = serviceCenter?.Name,
-                    Message = $"New claim #{createdClaim.ClaimId} created for {vehicle.Model} (VIN: {createdClaim.Vin})"
+                    Message = message
+                });
+
+            // Also send as ReceiveNotification for broader compatibility
+            await _notificationHub.Clients.Groups("EVM Staff", "EVM", "Admin")
+                .SendAsync("ReceiveNotification", new
+                {
+                    Type = "info",
+                    Title = "New Pending Claim",
+                    Message = message,
+                    ClaimId = createdClaim.ClaimId
                 });
         }
 

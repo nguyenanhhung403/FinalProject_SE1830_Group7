@@ -15,31 +15,141 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h2 class="mb-1">
-            <i class="bi bi-speedometer2 me-2"></i>Claims Dashboard
+            <i class="bi bi-speedometer2 me-2"></i>Operational Dashboard
         </h2>
-        <p class="text-muted mb-0">Overview of all warranty claims</p>
+        <p class="text-muted mb-0">Monitor warranty claims and service bookings</p>
     </div>
-    <div class="btn-group shadow-sm">
-        @if (User.IsInRole("SC Staff"))
-        {
-            <a class="btn btn-outline-dark" asp-page="/Claims/Archived">
-                <i class="bi bi-archive me-1"></i>The order has been corrected
-            </a>
-        }
-        else
-        {
-            <a class="btn btn-outline-primary" asp-page="/Claims/Review">
-                <i class="bi bi-clock-history me-1"></i>Review Pending
-            </a>
-            <a class="btn btn-outline-success" asp-page="/Claims/Completed">
-                <i class="bi bi-check-circle me-1"></i>Completed
-            </a>
-            <a class="btn btn-outline-dark" asp-page="/Claims/Archived">
-                <i class="bi bi-archive me-1"></i>Archived
-            </a>
-        }
+    <form method="get" class="d-flex align-items-center gap-2">
+        <label class="form-label mb-0">Bookings Year</label>
+        <input type="number" class="form-control" name="year" value="@Model.SelectedYear" min="2020" max="2100" style="width: 110px;" />
+        <button type="submit" class="btn btn-outline-primary"><i class="bi bi-arrow-repeat me-1"></i>Refresh</button>
+    </form>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small">Total Bookings (@Model.SelectedYear)</div>
+                        <div class="display-6 fw-bold text-primary">@((Model.BookingStats?.TotalBookings ?? 0))</div>
+                    </div>
+                    <i class="bi bi-calendar-check text-primary" style="font-size: 2rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small">Pending</div>
+                        <div class="display-6 fw-bold text-warning">@((Model.BookingStats?.Pending ?? 0))</div>
+                    </div>
+                    <i class="bi bi-hourglass-split text-warning" style="font-size: 2rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small">Completed</div>
+                        <div class="display-6 fw-bold text-success">@((Model.BookingStats?.Completed ?? 0))</div>
+                    </div>
+                    <i class="bi bi-check-circle text-success" style="font-size: 2rem;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-muted small">Cancelled / Rejected</div>
+                        <div class="display-6 fw-bold text-danger">@(((Model.BookingStats?.Cancelled ?? 0) + (Model.BookingStats?.Rejected ?? 0)))</div>
+                    </div>
+                    <i class="bi bi-x-octagon text-danger" style="font-size: 2rem;"></i>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
+
+@if (Model.BookingStats != null)
+{
+    <div class="row g-4 mb-4">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0"><i class="bi bi-diagram-3 me-2"></i>Bookings by Service Center</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.BookingStats.BookingsByServiceCenter.Count == 0)
+                    {
+                        <p class="text-muted mb-0">No data available for the selected year.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var entry in Model.BookingStats.BookingsByServiceCenter.OrderByDescending(kv => kv.Value))
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span><i class="bi bi-building me-2 text-muted"></i>@entry.Key</span>
+                                    <span class="badge bg-primary">@entry.Value</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-white border-0">
+                    <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Recent Bookings</h5>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.RecentBookings.Count == 0)
+                    {
+                        <div class="text-center py-4 text-muted">No recent bookings recorded.</div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0 align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Booking</th>
+                                        <th>Customer</th>
+                                        <th>Service Center</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var booking in Model.RecentBookings)
+                                    {
+                                        <tr>
+                                            <td><strong>#@booking.ServiceBookingId</strong><br /><small class="text-muted">@booking.PreferredStart.ToLocalTime():g</small></td>
+                                            <td>@booking.CustomerName</td>
+                                            <td>@booking.ServiceCenterName</td>
+                                            <td><span class="badge @GetBookingStatusClass(booking.Status)">@booking.Status</span></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 @if (TempData["Success"] is string success)
 {
@@ -56,58 +166,95 @@
     </div>
 }
 
-<div class="table-responsive">
-    <table class="table table-striped align-middle">
-        <thead>
-            <tr>
-                <th>ClaimID</th>
-                <th>Model</th>
-                <th>VIN</th>
-                <th>Status</th>
-                <th>Service Center</th>
-                <th>Created</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-        @foreach (var claim in Model.AllClaims)
-        {
-            var status = claim.StatusCode ?? string.Empty;
-            var statusClass = status.ToLower() switch {
-                "pending" => "status-pending",
-                "approved" => "status-approved",
-                "rejected" => "status-rejected",
-                "inprogress" => "status-inprogress",
-                "completed" => "status-completed",
-                "archived" => "status-archived",
-                "onhold" => "status-onhold",
-                "closed" => "status-closed",
-                _ => "bg-secondary"
-            };
-            <tr>
-                <td><strong>#@claim.ClaimId</strong></td>
-                <td>
-                    <i class="bi bi-car-front text-primary me-1"></i>
-                    @(claim.Vehicle?.Model ?? "N/A")
-                </td>
-                <td><code>@claim.Vin</code></td>
-                <td><span class="badge @statusClass">@claim.StatusCode</span></td>
-                <td>
-                    <i class="bi bi-building text-muted me-1"></i>
-                    @claim.ServiceCenter?.Name
-                </td>
-                <td>
-                    <i class="bi bi-calendar3 me-1 text-muted"></i>
-                    @claim.CreatedAt.ToString("MM/dd/yyyy")
-                </td>
-                <td class="text-nowrap">
-                    <a class="btn btn-sm btn-outline-primary" asp-page="Claims/Detail" asp-route-id="@claim.ClaimId">
-                        <i class="bi bi-eye me-1"></i>Detail
-                    </a>
-                </td>
-            </tr>
-        }
-        </tbody>
-    </table>
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-0">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Warranty Claims</h5>
+            <div class="btn-group shadow-sm">
+                @if (User.IsInRole("SC Staff"))
+                {
+                    <a class="btn btn-outline-dark" asp-page="/Claims/Archived"><i class="bi bi-archive me-1"></i>The order has been corrected</a>
+                }
+                else
+                {
+                    <a class="btn btn-outline-primary" asp-page="/Claims/Review"><i class="bi bi-clock-history me-1"></i>Review Pending</a>
+                    <a class="btn btn-outline-success" asp-page="/Claims/Completed"><i class="bi bi-check-circle me-1"></i>Completed</a>
+                    <a class="btn btn-outline-dark" asp-page="/Claims/Archived"><i class="bi bi-archive me-1"></i>Archived</a>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>ClaimID</th>
+                        <th>Model</th>
+                        <th>VIN</th>
+                        <th>Status</th>
+                        <th>Service Center</th>
+                        <th>Created</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var claim in Model.AllClaims)
+                {
+                    var status = claim.StatusCode ?? string.Empty;
+                    var statusClass = status.ToLower() switch {
+                        "pending" => "status-pending",
+                        "approved" => "status-approved",
+                        "rejected" => "status-rejected",
+                        "inprogress" => "status-inprogress",
+                        "completed" => "status-completed",
+                        "archived" => "status-archived",
+                        "onhold" => "status-onhold",
+                        "closed" => "status-closed",
+                        _ => "bg-secondary"
+                    };
+                    <tr>
+                        <td><strong>#@claim.ClaimId</strong></td>
+                        <td>
+                            <i class="bi bi-car-front text-primary me-1"></i>
+                            @(claim.Vehicle?.Model ?? "N/A")
+                        </td>
+                        <td><code>@claim.Vin</code></td>
+                        <td><span class="badge @statusClass">@claim.StatusCode</span></td>
+                        <td>
+                            <i class="bi bi-building text-muted me-1"></i>
+                            @claim.ServiceCenter?.Name
+                        </td>
+                        <td>
+                            <i class="bi bi-calendar3 me-1 text-muted"></i>
+                            @claim.CreatedAt.ToString("MM/dd/yyyy")
+                        </td>
+                        <td class="text-nowrap">
+                            <a class="btn btn-sm btn-outline-primary" asp-page="/Claims/Details" asp-route-id="@claim.ClaimId">
+                                <i class="bi bi-eye me-1"></i>Detail
+                            </a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </div>
 </div>
+
+@functions {
+    private static string GetBookingStatusClass(string? status)
+    {
+        return status?.ToLower() switch
+        {
+            "pending" => "bg-warning text-dark",
+            "approved" => "bg-primary",
+            "inprogress" => "bg-info text-dark",
+            "completed" => "bg-success",
+            "rejected" => "bg-danger",
+            "cancelled" => "bg-secondary",
+            _ => "bg-secondary"
+        };
+    }
+}
 

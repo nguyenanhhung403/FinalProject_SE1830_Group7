@@ -1,0 +1,72 @@
+@page
+@model EVWarrantyManagement.Pages.ServiceCenters.EditModel
+@{
+    ViewData["Title"] = "Edit Service Center";
+}
+
+<nav aria-label="breadcrumb" class="mb-2">
+    <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a asp-page="/Index"><i class="bi bi-house me-1"></i>Dashboard</a></li>
+        <li class="breadcrumb-item"><a asp-page="Index">Service Centers</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Edit</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h2 class="mb-0" style="font-size: 1.5rem;">
+        <i class="bi bi-pencil me-2"></i>Edit Service Center
+    </h2>
+    <a class="btn btn-sm btn-outline-secondary" asp-page="Index">
+        <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+</div>
+
+@if (TempData["Error"] is string eMsg)
+{
+    <div class="alert alert-danger alert-dismissible fade show py-2 mb-2" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i><small>@eMsg</small>
+        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<form method="post" class="card shadow-sm">
+    <input type="hidden" asp-for="ServiceCenter.ServiceCenterId" />
+    <div class="card-body">
+        <div class="mb-3">
+            <label asp-for="ServiceCenter.Name" class="form-label">Name <span class="text-danger">*</span></label>
+            <input asp-for="ServiceCenter.Name" class="form-control" required />
+            <span asp-validation-for="ServiceCenter.Name" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="ServiceCenter.Address" class="form-label">Address</label>
+            <textarea asp-for="ServiceCenter.Address" class="form-control" rows="2"></textarea>
+            <span asp-validation-for="ServiceCenter.Address" class="text-danger"></span>
+        </div>
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label asp-for="ServiceCenter.ContactName" class="form-label">Contact Name</label>
+                <input asp-for="ServiceCenter.ContactName" class="form-control" />
+                <span asp-validation-for="ServiceCenter.ContactName" class="text-danger"></span>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label asp-for="ServiceCenter.ContactPhone" class="form-label">Contact Phone</label>
+                <input asp-for="ServiceCenter.ContactPhone" class="form-control" />
+                <span asp-validation-for="ServiceCenter.ContactPhone" class="text-danger"></span>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle me-1"></i>Update
+            </button>
+            <a class="btn btn-outline-secondary" asp-page="Index">Cancel</a>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
+

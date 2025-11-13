@@ -1,9 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using EVWarrantyManagement.BLL.Interfaces;
 using EVWarrantyManagement.BO.Models;
+using EVWarrantyManagement.Hubs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.SignalR;
 
 namespace EVWarrantyManagement.Pages.Parts;
 
@@ -11,10 +13,12 @@ namespace EVWarrantyManagement.Pages.Parts;
 public class EditModel : PageModel
 {
     private readonly IPartService _partService;
+    private readonly IHubContext<NotificationHub> _notificationHub;
 
-    public EditModel(IPartService partService)
+    public EditModel(IPartService partService, IHubContext<NotificationHub> notificationHub)
     {
         _partService = partService;
+        _notificationHub = notificationHub;
     }
 
     [BindProperty]
@@ -71,6 +75,24 @@ public class EditModel : PageModel
         part.UnitPrice = Input.UnitPrice;
 
         await _partService.UpdatePartAsync(part);
+        
+        // Send notification
+        var notificationPayload = new
+        {
+            Type = "part_updated",
+            Title = "Part Updated",
+            Message = $"Part {part.PartName} ({part.PartCode}) has been updated",
+            PartId = part.PartId,
+            PartName = part.PartName,
+            PartCode = part.PartCode
+        };
+
+        await _notificationHub.Clients.Groups("Admin", "EVM Staff", "EVM")
+            .SendAsync("ReceiveNotification", notificationPayload);
+
+        await _notificationHub.Clients.Group($"Part_{part.PartId}")
+            .SendAsync("ReceivePartUpdate", notificationPayload);
+
         TempData["Success"] = "Part updated.";
         return RedirectToPage("Index");
     }

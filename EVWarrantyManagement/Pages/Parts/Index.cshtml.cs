@@ -16,10 +16,23 @@ public class IndexModel : PageModel
     }
 
     public IReadOnlyList<Part> Parts { get; private set; } = Array.Empty<Part>();
+    public Dictionary<int, PartInventory?> PartInventories { get; private set; } = new();
+    public IReadOnlyList<PartStockMovement> RecentStockMovements { get; private set; } = Array.Empty<PartStockMovement>();
 
     public async Task OnGetAsync()
     {
         Parts = await _partService.GetPartsAsync();
+        
+        // Load inventories for all parts
+        PartInventories = new Dictionary<int, PartInventory?>();
+        foreach (var part in Parts)
+        {
+            var inventory = await _partService.GetInventoryAsync(part.PartId);
+            PartInventories[part.PartId] = inventory;
+        }
+
+        // Load recent stock movements (last 50)
+        RecentStockMovements = await _partService.GetRecentStockMovementsAsync(50);
     }
 }
 

@@ -13,5 +13,7 @@ public interface IReportingService
     Task<decimal> GetTotalRevenueAsync(CancellationToken cancellationToken = default);
 
     Task<IReadOnlyDictionary<string, decimal>> GetRevenueByMonthAsync(int year, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyDictionary<string, decimal>> GetRevenueByServiceCenterAsync(int? year, CancellationToken cancellationToken = default);
 }
 

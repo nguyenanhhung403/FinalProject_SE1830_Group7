@@ -8,6 +8,7 @@ class ClaimsRealTime {
         this.notificationHub = null;
         this.isInitialized = false;
         this.currentClaimId = null;
+        this.reloadScheduled = false;
     }
 
     /**
@@ -135,12 +136,132 @@ class ClaimsRealTime {
      * Create toast container if it doesn't exist
      */
     createToastContainer() {
+        const existing = document.getElementById('toast-container');
+        if (existing) {
+            return existing;
+        }
+
         const container = document.createElement('div');
         container.id = 'toast-container';
         container.className = 'toast-container position-fixed top-0 end-0 p-3';
         container.style.zIndex = '9999';
         document.body.appendChild(container);
         return container;
+    }
+
+    getClaimsTableBody() {
+        return document.querySelector('#claims-table tbody, table[data-claims-table="true"] tbody');
+    }
+
+    normalizeStatusValue(status) {
+        if (!status) return '';
+        return status.toString().trim();
+    }
+
+    getStatusClass(status) {
+        const normalized = this.normalizeStatusValue(status).toLowerCase();
+        switch (normalized) {
+            case 'pending':
+                return 'status-pending';
+            case 'approved':
+                return 'status-approved';
+            case 'rejected':
+                return 'status-rejected';
+            case 'inprogress':
+            case 'in progress':
+                return 'status-inprogress';
+            case 'completed':
+                return 'status-completed';
+            case 'archived':
+                return 'status-archived';
+            case 'onhold':
+            case 'on hold':
+                return 'status-onhold';
+            case 'closed':
+                return 'status-closed';
+            default:
+                return 'bg-secondary';
+        }
+    }
+
+    formatDate(dateValue) {
+        if (!dateValue) {
+            return '';
+        }
+
+        try {
+            if (dateValue instanceof Date) {
+                return dateValue.toLocaleDateString();
+            }
+
+            // Handle DateOnly string (yyyy-MM-dd) or ISO strings
+            const parsed = new Date(dateValue);
+            if (!Number.isNaN(parsed.getTime())) {
+                return parsed.toLocaleDateString();
+            }
+        } catch (error) {
+            console.warn('Unable to format date value', dateValue, error);
+        }
+
+        return dateValue.toString();
+    }
+
+    shouldDisplayClaim(status) {
+        const filterSelect = document.querySelector('select[name="status"]');
+        if (!filterSelect) {
+            return true;
+        }
+
+        const filterValue = (filterSelect.value || '').trim().toLowerCase();
+        if (!filterValue) {
+            return true;
+        }
+
+        return this.normalizeStatusValue(status).toLowerCase() === filterValue;
+    }
+
+    hasMinimumClaimData(data) {
+        const model = data.vehicleModel || data.VehicleModel;
+        const vin = data.vin || data.Vin;
+        return Boolean(model && vin);
+    }
+
+    reloadClaimsTable(delay = 800) {
+        if (this.reloadScheduled) {
+            return;
+        }
+        this.reloadScheduled = true;
+        setTimeout(() => {
+            window.location.reload();
+        }, delay);
+    }
+
+    updateClaimRowContent(row, data) {
+        if (!row || !row.cells || row.cells.length < 7) {
+            return;
+        }
+
+        const claimId = data.ClaimId || data.claimId;
+        const vehicleModel = data.VehicleModel || data.vehicleModel || 'N/A';
+        const vin = data.Vin || data.vin || '';
+        const descriptionRaw = data.Description || data.description || '';
+        const description = descriptionRaw.length > 0 ? descriptionRaw : 'N/A';
+        const dateDiscovered = this.formatDate(data.DateDiscovered || data.dateDiscovered);
+        const statusRaw = data.NewStatus || data.StatusCode || data.statusCode || row.dataset.claimStatus || '';
+        const statusValue = this.normalizeStatusValue(statusRaw);
+        const statusClass = this.getStatusClass(statusValue || statusRaw);
+        const statusDisplay = statusValue || statusRaw || 'N/A';
+
+        row.dataset.claimStatus = statusDisplay;
+
+        row.cells[0].innerHTML = `<strong style="font-size: 0.9rem;">#${claimId}</strong>`;
+        row.cells[1].innerHTML = `<i class="bi bi-car-front text-primary me-1"></i>${vehicleModel}`;
+        row.cells[2].innerHTML = `<code style="font-size: 0.8rem;">${vin}</code>`;
+        row.cells[3].textContent = description;
+        row.cells[3].classList.add('text-truncate');
+        row.cells[3].style.maxWidth = '280px';
+        row.cells[4].innerHTML = `<i class="bi bi-calendar3 me-1 text-muted"></i>${dateDiscovered || ''}`;
+        row.cells[5].innerHTML = `<span class="badge ${statusClass}">${statusDisplay}</span>`;
     }
 
     /**
@@ -236,27 +357,54 @@ class ClaimsRealTime {
      */
     updateClaimInTable(data) {
         const claimId = data.ClaimId || data.claimId;
-        const claimRow = document.querySelector(`tr[data-claim-id="${claimId}"]`);
-        if (!claimRow) {
-            console.log(`Claim row not found for ClaimId: ${claimId}`);
+        if (!claimId) {
             return;
         }
 
-        console.log('Updating claim in table:', data);
-
-        // Update status - find status column
-        if (data.NewStatus) {
-            const statusCell = claimRow.querySelector('td:has(.badge)') || claimRow.cells[5];
-            if (statusCell) {
-                statusCell.innerHTML = `<span class="badge status-${data.NewStatus.toLowerCase().replace(' ', '')} badge-pulse">${data.NewStatus}</span>`;
-                setTimeout(() => {
-                    const badge = statusCell.querySelector('.badge');
-                    if (badge) badge.classList.remove('badge-pulse');
-                }, 1000);
-            }
+        const tableBody = this.getClaimsTableBody();
+        if (!tableBody) {
+            return;
         }
 
-        // Highlight row to show it was updated
+        const statusValue = this.normalizeStatusValue(data.NewStatus || data.StatusCode || data.statusCode || '');
+        const shouldDisplay = this.shouldDisplayClaim(statusValue);
+
+        let claimRow = tableBody.querySelector(`tr[data-claim-id="${claimId}"]`);
+
+        if (!claimRow) {
+            console.log(`Claim row not found for ClaimId: ${claimId}`);
+
+            if (shouldDisplay) {
+                if (this.hasMinimumClaimData(data)) {
+                    this.addClaimToTable(data);
+                } else {
+                    this.reloadClaimsTable();
+                }
+            }
+            return;
+        }
+
+        if (!shouldDisplay) {
+            claimRow.remove();
+            return;
+        }
+
+        const previousStatus = (claimRow.dataset.claimStatus || '').toLowerCase();
+
+        this.updateClaimRowContent(claimRow, data);
+
+        const updatedStatus = (claimRow.dataset.claimStatus || '').toLowerCase();
+        if (previousStatus && updatedStatus && previousStatus !== updatedStatus) {
+            this.reloadClaimsTable(600);
+            return;
+        }
+
+        const statusBadge = claimRow.querySelector('td:nth-child(6) .badge');
+        if (statusBadge) {
+            statusBadge.classList.add('badge-pulse');
+            setTimeout(() => statusBadge.classList.remove('badge-pulse'), 1000);
+        }
+
         claimRow.classList.add('table-row-highlight');
         setTimeout(() => claimRow.classList.remove('table-row-highlight'), 2000);
     }
@@ -265,42 +413,67 @@ class ClaimsRealTime {
      * Add new claim to table
      */
     addClaimToTable(data) {
-        const claimsTable = document.querySelector('#claims-table tbody, .table tbody');
-        if (!claimsTable) {
+        const tableBody = this.getClaimsTableBody();
+        if (!tableBody) {
             console.log('Claims table not found, cannot add new claim to table');
             return;
         }
 
-        console.log('Adding new claim to table:', data);
+        const claimId = data.ClaimId || data.claimId;
+        if (!claimId) {
+            return;
+        }
 
-        // Create new row matching the actual table structure
+        const statusValue = this.normalizeStatusValue(data.StatusCode || data.statusCode || data.NewStatus || data.status || '');
+        if (!this.shouldDisplayClaim(statusValue)) {
+            return;
+        }
+
+        const existingRow = tableBody.querySelector(`tr[data-claim-id="${claimId}"]`);
+        if (existingRow) {
+            this.updateClaimRowContent(existingRow, data);
+            return;
+        }
+
+        if (!this.hasMinimumClaimData(data)) {
+            this.reloadClaimsTable();
+            return;
+        }
+
+        const vehicleModel = data.VehicleModel || data.vehicleModel || 'N/A';
+        const vin = data.Vin || data.vin || '';
+        const desc = data.Description || data.description || '';
+        const description = desc.length > 50 ? `${desc.substring(0, 50)}...` : (desc || 'N/A');
+        const dateDiscovered = this.formatDate(data.DateDiscovered || data.dateDiscovered);
+        const statusClass = this.getStatusClass(statusValue || 'Pending');
+        const statusDisplay = statusValue || 'Pending';
+
         const row = document.createElement('tr');
-        row.setAttribute('data-claim-id', data.claimId || data.ClaimId);
+        row.dataset.claimId = claimId;
+        row.dataset.claimStatus = statusDisplay;
         row.className = 'new-row-animation';
 
-        // Truncate description if too long
-        const desc = data.description || data.Description || '';
-        const description = desc.length > 50 ? desc.substring(0, 50) + '...' : (desc || 'N/A');
-
         row.innerHTML = `
-            <td><strong>#${data.claimId || data.ClaimId}</strong></td>
-            <td><i class="bi bi-car-front text-primary me-1"></i>${data.vehicleModel || data.VehicleModel || 'N/A'}</td>
-            <td><code>${data.vin || data.Vin}</code></td>
-            <td class="text-truncate" style="max-width: 360px;">${description}</td>
-            <td><i class="bi bi-calendar3 me-1 text-muted"></i>${new Date().toLocaleDateString()}</td>
-            <td><span class="badge status-pending">${data.statusCode || data.StatusCode || 'Pending'}</span></td>
-            <td class="text-nowrap">
-                <a class="btn btn-sm btn-outline-primary" href="/Claims/Details?id=${data.claimId || data.ClaimId}">
-                    <i class="bi bi-eye me-1"></i>Details
+            <td><strong style="font-size: 0.9rem;">#${claimId}</strong></td>
+            <td style="font-size: 0.875rem;"><i class="bi bi-car-front text-primary me-1"></i>${vehicleModel}</td>
+            <td><code style="font-size: 0.8rem;">${vin}</code></td>
+            <td class="text-truncate" style="max-width: 280px; font-size: 0.875rem;">${description}</td>
+            <td style="font-size: 0.875rem;"><i class="bi bi-calendar3 me-1 text-muted"></i>${dateDiscovered || ''}</td>
+            <td><span class="badge ${statusClass}">${statusDisplay}</span></td>
+            <td class="py-1 text-nowrap">
+                <a class="btn btn-xs btn-outline-primary" href="/Claims/Details?id=${claimId}" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+                    <i class="bi bi-eye"></i>
                 </a>
             </td>
         `;
 
-        // Add to top of table
-        claimsTable.prepend(row);
+        if (tableBody.firstChild) {
+            tableBody.insertBefore(row, tableBody.firstChild);
+        } else {
+            tableBody.appendChild(row);
+        }
 
-        // Remove animation class after animation completes
-        setTimeout(() => row.classList.remove('new-row-animation'), 500);
+        setTimeout(() => row.classList.remove('new-row-animation'), 1500);
     }
 
     /**

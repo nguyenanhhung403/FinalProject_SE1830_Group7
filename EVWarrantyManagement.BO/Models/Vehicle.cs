@@ -22,4 +22,6 @@ public partial class Vehicle
     public virtual Customer? Customer { get; set; }
 
     public virtual ICollection<WarrantyClaim> WarrantyClaims { get; set; } = new List<WarrantyClaim>();
+
+    public virtual ICollection<ServiceBooking> ServiceBookings { get; set; } = new List<ServiceBooking>();
 }

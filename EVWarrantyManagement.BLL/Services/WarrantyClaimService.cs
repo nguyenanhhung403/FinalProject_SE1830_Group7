@@ -93,5 +93,15 @@ public class WarrantyClaimService : IWarrantyClaimService
     {
         return _warrantyClaimRepository.GetArchivedClaimAsync(historyId, cancellationToken);
     }
+
+    public Task AssignTechnicianAsync(int claimId, int technicianId, int assignedByUserId, CancellationToken cancellationToken = default)
+    {
+        return _warrantyClaimRepository.AssignTechnicianAsync(claimId, technicianId, assignedByUserId, cancellationToken);
+    }
+
+    public Task RevertToPendingAsync(int claimId, int userId, string? note, CancellationToken cancellationToken = default)
+    {
+        return _warrantyClaimRepository.RevertToPendingAsync(claimId, userId, note, cancellationToken);
+    }
 }
 

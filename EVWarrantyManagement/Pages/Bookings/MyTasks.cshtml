@@ -1,0 +1,296 @@
+@page
+@using System.Linq
+@model EVWarrantyManagement.Pages.Bookings.MyTasksModel
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Policy="RequireTechnician")]
+@{
+    ViewData["Title"] = "My Service Tasks";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">My Assigned Service Bookings</h2>
+        <p class="text-muted mb-0">Manage appointments assigned to you.</p>
+    </div>
+    <a class="btn btn-outline-secondary" asp-page="/Bookings/History">
+        <i class="bi bi-clock-history me-1"></i>Customer History
+    </a>
+</div>
+
+@if (TempData["Success"] is string successMsg)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>@successMsg
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["Error"] is string errorMsg)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>@errorMsg
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Upcoming Bookings</h5>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.UpcomingBookings.Count == 0)
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-calendar-x" style="font-size: 3rem;"></i>
+                <p class="mt-3 mb-0">No pending or approved bookings assigned.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Booking</th>
+                            <th>Customer</th>
+                            <th>Service Center</th>
+                            <th>Preferred Time</th>
+                            <th>Service Type</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var booking in Model.UpcomingBookings)
+                        {
+                            <tr>
+                                <td><strong>#@booking.ServiceBookingId</strong></td>
+                                <td>
+                                    <div>@booking.Customer?.FullName</div>
+                                    <small class="text-muted">@booking.Customer?.Email</small>
+                                </td>
+                                <td>@booking.ServiceCenter?.Name</td>
+                                <td>
+                                    <div>@booking.PreferredStart.ToLocalTime():MMM dd, yyyy HH:mm</div>
+                                    <small class="text-muted">Duration: @booking.EstimatedDurationMinutes mins</small>
+                                </td>
+                                <td>@booking.ServiceType</td>
+                                <td class="text-nowrap">
+                                    <form method="post" asp-page-handler="Start" class="d-inline">
+                                        <input type="hidden" name="bookingId" value="@booking.ServiceBookingId" />
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-play-circle me-1"></i>Start
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mt-4">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0"><i class="bi bi-tools me-2"></i>In Progress</h5>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.InProgressBookings.Count == 0)
+        {
+            <div class="text-center py-4 text-muted">No bookings currently in progress.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Booking</th>
+                            <th>Customer</th>
+                            <th>Service Center</th>
+                            <th>Started</th>
+                            <th>Service Type</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var booking in Model.InProgressBookings)
+                        {
+                            Model.BookingParts.TryGetValue(booking.ServiceBookingId, out var parts);
+                            <tr>
+                                <td><strong>#@booking.ServiceBookingId</strong></td>
+                                <td>
+                                    <div>@booking.Customer?.FullName</div>
+                                    <small class="text-muted">@booking.Customer?.Phone</small>
+                                </td>
+                                <td>@booking.ServiceCenter?.Name</td>
+                                <td>@(booking.ConfirmedStart.HasValue ? booking.ConfirmedStart.Value.ToLocalTime().ToString("g") : "—")</td>
+                                <td>@booking.ServiceType</td>
+                                <td style="max-width: 220px;">
+                                    <div class="text-truncate" title="@booking.CustomerNote">@booking.CustomerNote</div>
+                                </td>
+                                <td class="text-nowrap">
+                                    <form method="post" asp-page-handler="Complete" class="d-inline-flex align-items-center gap-2">
+                                        <input type="hidden" name="bookingId" value="@booking.ServiceBookingId" />
+                                        <input type="text" name="internalNote" class="form-control form-control-sm" placeholder="Completion note" />
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="bi bi-check-circle me-1"></i>Complete
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            <tr class="table-light">
+                                <td colspan="7">
+                                    <div class="p-3">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6 class="mb-0"><i class="bi bi-gear-wide-connected me-2"></i>Repair Parts Used</h6>
+                                            <small class="text-muted">Inventory updates automatically when you add or remove parts.</small>
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="table table-sm mb-3">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Part</th>
+                                                        <th>Quantity</th>
+                                                        <th>Cost</th>
+                                                        <th>Note</th>
+                                                        <th>Added</th>
+                                                        <th></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @if (parts == null || parts.Count == 0)
+                                                    {
+                                                        <tr>
+                                                            <td colspan="6" class="text-muted text-center">No parts added yet.</td>
+                                                        </tr>
+                                                    }
+                                                    else
+                                                    {
+                                                        foreach (var part in parts)
+                                                        {
+                                                            <tr>
+                                                                <td>
+                                                                    <div>@part.Part?.PartName</div>
+                                                                    <small class="text-muted">@part.Part?.PartCode</small>
+                                                                </td>
+                                                                <td>@part.Quantity</td>
+                                                                <td>@(part.PartCost?.ToString("C2") ?? "—")</td>
+                                                                <td>@part.Note</td>
+                                                                <td>@part.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                                                <td class="text-end">
+                                                                    <form method="post" asp-page-handler="RemovePart" class="d-inline">
+                                                                        <input type="hidden" name="bookingPartId" value="@part.ServiceBookingPartId" />
+                                                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                                            <i class="bi bi-trash me-1"></i>Remove
+                                                                        </button>
+                                                                    </form>
+                                                                </td>
+                                                            </tr>
+                                                        }
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <form method="post" asp-page-handler="AddPart" class="row gy-2 gx-2 align-items-end">
+                                            <input type="hidden" name="bookingId" value="@booking.ServiceBookingId" />
+                                            <div class="col-md-5 col-sm-6">
+                                                <label class="form-label form-label-sm">Part</label>
+                                                <select name="partId" class="form-select form-select-sm" required>
+                                                    <option value="">-- Select part --</option>
+                                                    @foreach (var option in Model.PartOptions)
+                                                    {
+                                                        <option value="@option.Value">@option.Text</option>
+                                                    }
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2 col-sm-3">
+                                                <label class="form-label form-label-sm">Quantity</label>
+                                                <input type="number" name="quantity" class="form-control form-control-sm" min="1" value="1" required />
+                                            </div>
+                                            <div class="col-md-3 col-sm-6">
+                                                <label class="form-label form-label-sm">Note</label>
+                                                <input type="text" name="note" class="form-control form-control-sm" placeholder="Optional note" />
+                                            </div>
+                                            <div class="col-md-2 col-sm-3 d-grid">
+                                                <button type="submit" class="btn btn-sm btn-primary">
+                                                    <i class="bi bi-plus-circle me-1"></i>Add Part
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mt-4">
+    <div class="card-header bg-success text-white">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="bi bi-check-all me-2"></i>Recently Completed</h5>
+            <small class="text-light">@Model.CompletedBookings.Count record(s)</small>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.CompletedBookings.Count == 0)
+        {
+            <div class="text-center py-4 text-muted">No completed bookings yet.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Booking</th>
+                            <th>Service Center</th>
+                            <th>Completed</th>
+                            <th>Service Type</th>
+                            <th>Notes</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var booking in Model.CompletedBookings)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>#@booking.ServiceBookingId</strong>
+                                    <div class="text-muted small">Started @(booking.ConfirmedStart.HasValue ? booking.ConfirmedStart.Value.ToLocalTime().ToString("g") : "—")</div>
+                                </td>
+                                <td>
+                                    <div>@booking.ServiceCenter?.Name</div>
+                                    <div class="text-muted small">@booking.ServiceCenter?.Address</div>
+                                </td>
+                                <td>
+                                    @if (booking.CompletedAt.HasValue)
+                                    {
+                                        @booking.CompletedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">N/A</span>
+                                    }
+                                </td>
+                                <td>@booking.ServiceType</td>
+                                <td style="max-width: 180px;">
+                                    <div class="text-truncate" title="@booking.InternalNote">@booking.InternalNote</div>
+                                </td>
+                                <td class="text-end">
+                                    <a class="btn btn-sm btn-outline-primary" asp-page="/Bookings/Details" asp-route-id="@booking.ServiceBookingId">
+                                        <i class="bi bi-eye me-1"></i>View
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

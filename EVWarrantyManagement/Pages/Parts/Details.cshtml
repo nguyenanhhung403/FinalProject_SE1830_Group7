@@ -1,0 +1,198 @@
+@page
+@model EVWarrantyManagement.Pages.Parts.DetailsModel
+@{
+    ViewData["Title"] = "Part Details";
+}
+
+<nav aria-label="breadcrumb" class="mb-2">
+    <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a asp-page="/Index"><i class="bi bi-house me-1"></i>Dashboard</a></li>
+        <li class="breadcrumb-item"><a asp-page="Index">Parts</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Details</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <h2 class="mb-0" style="font-size: 1.5rem;">
+        <i class="bi bi-gear me-2"></i>@Model.Part?.PartName
+    </h2>
+    <a class="btn btn-sm btn-outline-secondary" asp-page="Index">
+        <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+</div>
+
+@if (TempData["Success"] is string sMsg)
+{
+    <div class="alert alert-success alert-dismissible fade show py-2 mb-2" role="alert">
+        <i class="bi bi-check-circle me-2"></i><small>@sMsg</small>
+        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["Error"] is string eMsg)
+{
+    <div class="alert alert-danger alert-dismissible fade show py-2 mb-2" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i><small>@eMsg</small>
+        <button type="button" class="btn-close btn-close-sm" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (Model.Part != null)
+{
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Part Information</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">Part Code:</dt>
+                        <dd class="col-sm-8"><code>@Model.Part.PartCode</code></dd>
+                        <dt class="col-sm-4">Part Name:</dt>
+                        <dd class="col-sm-8">@Model.Part.PartName</dd>
+                        <dt class="col-sm-4">Unit Price:</dt>
+                        <dd class="col-sm-8">@(Model.Part.UnitPrice.HasValue ? $"${Model.Part.UnitPrice.Value:N2}" : "N/A")</dd>
+                        <dt class="col-sm-4">Warranty Period:</dt>
+                        <dd class="col-sm-8">@(Model.Part.WarrantyPeriodMonths.HasValue ? $"{Model.Part.WarrantyPeriodMonths} months" : "N/A")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-box-seam me-2"></i>Stock Information</h5>
+                </div>
+                <div class="card-body">
+                    @if (Model.Inventory != null)
+                    {
+                        var stockQty = Model.Inventory.StockQuantity;
+                        var minLevel = Model.Inventory.MinStockLevel ?? 0;
+                        var status = "In Stock";
+                        var statusClass = "bg-success";
+                        if (stockQty == 0)
+                        {
+                            status = "Out of Stock";
+                            statusClass = "bg-danger";
+                        }
+                        else if (minLevel > 0 && stockQty < minLevel)
+                        {
+                            status = "Low Stock";
+                            statusClass = "bg-warning text-dark";
+                        }
+                        <div class="text-center mb-3">
+                            <h2 class="mb-0 @(stockQty == 0 ? "text-danger" : (minLevel > 0 && stockQty < minLevel ? "text-warning" : "text-success"))">@stockQty</h2>
+                            <p class="text-muted mb-0">Current Stock</p>
+                        </div>
+                        <dl class="row mb-0">
+                            <dt class="col-sm-6">Min Stock Level:</dt>
+                            <dd class="col-sm-6">@(minLevel > 0 ? minLevel.ToString() : "Not set")</dd>
+                            <dt class="col-sm-6">Status:</dt>
+                            <dd class="col-sm-6"><span class="badge @statusClass">@status</span></dd>
+                            <dt class="col-sm-6">Last Updated:</dt>
+                            <dd class="col-sm-6">@Model.Inventory.LastUpdated.ToString("MM/dd/yyyy HH:mm")</dd>
+                        </dl>
+                        @if (User.IsInRole("Admin") || User.IsInRole("EVM Staff") || User.IsInRole("EVM"))
+                        {
+                            <form method="post" asp-page-handler="UpdateMinStockLevel" class="mt-3">
+                                <input type="hidden" name="id" value="@Model.Part.PartId" />
+                                <div class="input-group">
+                                    <input type="number" name="MinStockLevel" class="form-control form-control-sm" placeholder="Min Stock Level" min="0" value="@minLevel" />
+                                    <button type="submit" class="btn btn-sm btn-primary">Update Min Level</button>
+                                </div>
+                            </form>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No inventory record found. Stock quantity: 0</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Stock Movement History</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-striped">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Date</th>
+                            <th>Type</th>
+                            <th>Quantity</th>
+                            <th>Reference</th>
+                            <th>Note</th>
+                            <th>By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var movement in Model.StockMovements)
+                        {
+                            <tr>
+                                <td>@movement.CreatedAt.ToString("MM/dd/yyyy HH:mm")</td>
+                                <td>
+                                    <span class="badge @(movement.MovementType == "IN" || movement.MovementType == "RELEASED" ? "bg-success" : movement.MovementType == "OUT" || movement.MovementType == "RESERVED" ? "bg-danger" : "bg-secondary")">
+                                        @movement.MovementType
+                                    </span>
+                                </td>
+                                <td>
+                                    <strong class="@(movement.Quantity > 0 ? "text-success" : "text-danger")">
+                                        @(movement.Quantity > 0 ? "+" : "")@movement.Quantity
+                                    </strong>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(movement.ReferenceType) && movement.ReferenceId.HasValue)
+                                    {
+                                        @if (movement.ReferenceType == "CLAIM")
+                                        {
+                                            <a asp-page="/Claims/Details" asp-route-id="@movement.ReferenceId">Claim #@movement.ReferenceId</a>
+                                        }
+                                        else
+                                        {
+                                            <span>@movement.ReferenceType #@movement.ReferenceId</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>@(movement.Note ?? "-")</td>
+                                <td>@(movement.CreatedByUser?.FullName ?? "System")</td>
+                            </tr>
+                        }
+                        @if (!Model.StockMovements.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">No stock movements recorded.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        // Ensure parts real-time is initialized for this part
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.PartsRealTime) {
+                var partId = @(Model.Part?.PartId ?? 0);
+                if (partId > 0) {
+                    if (!window.partsRealTime || !window.partsRealTime.isInitialized) {
+                        window.partsRealTime = new PartsRealTime();
+                        window.partsRealTime.initialize(partId);
+                    }
+                }
+            }
+        });
+    </script>
+}
+

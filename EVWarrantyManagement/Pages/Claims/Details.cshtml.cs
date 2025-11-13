@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -26,6 +27,7 @@ public class DetailsModel : PageModel
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IOptions<N8nSettings> _n8nOptions;
     private readonly IHubContext<NotificationHub> _notificationHub;
+    private readonly IServiceCenterService _serviceCenterService;
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
         PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
@@ -36,13 +38,15 @@ public class DetailsModel : PageModel
         IPartService partService,
         IHttpClientFactory httpClientFactory,
         IOptions<N8nSettings> n8nOptions,
-        IHubContext<NotificationHub> notificationHub)
+        IHubContext<NotificationHub> notificationHub,
+        IServiceCenterService serviceCenterService)
     {
         _claimService = claimService;
         _partService = partService;
         _httpClientFactory = httpClientFactory;
         _n8nOptions = n8nOptions;
         _notificationHub = notificationHub;
+        _serviceCenterService = serviceCenterService;
     }
 
     [BindProperty]
@@ -50,9 +54,13 @@ public class DetailsModel : PageModel
 
     public WarrantyClaim? Claim { get; private set; }
     public IEnumerable<PartOptionViewModel> PartOptions { get; private set; } = Enumerable.Empty<PartOptionViewModel>();
+    public IReadOnlyList<ServiceCenterTechnician> ServiceCenterTechnicians { get; private set; } = Array.Empty<ServiceCenterTechnician>();
 
     [BindProperty]
     public AddPartInputModel AddPartInput { get; set; } = new();
+
+    [BindProperty]
+    public int? SelectedTechnicianId { get; set; }
 
     public class AddPartInputModel
     {
@@ -116,8 +124,37 @@ public class DetailsModel : PageModel
         ClaimId = id;
         Claim = await _claimService.GetClaimAsync(id);
         if (Claim == null) return RedirectToPage("Index");
+        
+        // Permission check for SC Technician: can only view claims assigned to them
+        var isScTechnician = User.IsInRole("SC Technician") || (!User.IsInRole("SC Staff") && User.IsInRole("SC"));
+        if (isScTechnician)
+        {
+            var userId = GetUserId();
+            if (!Claim.TechnicianId.HasValue || Claim.TechnicianId.Value != userId)
+            {
+                return Forbid(); // Technician can only view claims assigned to them
+            }
+        }
+        
         await HydrateUsedPartsAsync(Claim.UsedParts);
         await LoadLookupsAsync();
+        
+        // Load technicians for this service center
+        if (Claim.ServiceCenterId > 0)
+        {
+            try
+            {
+                ServiceCenterTechnicians = await _serviceCenterService.GetTechniciansAsync(Claim.ServiceCenterId);
+            }
+            catch
+            {
+                ServiceCenterTechnicians = Array.Empty<ServiceCenterTechnician>();
+            }
+        }
+        else
+        {
+            ServiceCenterTechnicians = Array.Empty<ServiceCenterTechnician>();
+        }
         
         // Khôi phục AI suggestion từ Session nếu có (khi TempData đã bị xóa)
         var sessionKey = $"AiSuggestion_{id}";
@@ -179,10 +216,72 @@ public class DetailsModel : PageModel
             Quantity = quantity,
             PartCost = perUnitCost
         };
+
+        // Reserve stock before adding part
+        try
+        {
+            await _partService.ReserveStockAsync(AddPartInput.PartId, quantity, ClaimId, GetUserId());
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["Error"] = ex.Message;
+            return await Reload();
+        }
+
         await _claimService.AddUsedPartAsync(usedPart, GetUserId());
-        TempData["Success"] = "Part added.";
+        TempData["Success"] = $"Part added. {quantity} unit(s) reserved from stock.";
         
-        // Send SignalR notification
+        // Get inventory after reservation
+        var inventory = await _partService.GetInventoryAsync(AddPartInput.PartId);
+        var remainingStock = inventory?.StockQuantity ?? 0;
+        
+        // Send notification about stock movement to Admin/EVM
+        await _notificationHub.Clients.Groups("Admin", "EVM Staff", "EVM")
+            .SendAsync("ReceiveNotification", new
+            {
+                Type = "stock_movement",
+                Title = "Stock Reserved",
+                Message = $"📦 {quantity} unit(s) of {part.PartName} reserved for Claim #{ClaimId}. Remaining stock: {remainingStock}",
+                PartId = AddPartInput.PartId,
+                PartName = part.PartName,
+                Quantity = quantity,
+                ClaimId = ClaimId,
+                StockQuantity = remainingStock
+            });
+        
+        // Send SignalR update for Recent Part Updates (stock movement)
+        await _notificationHub.Clients.All
+            .SendAsync("ReceivePartUpdate", new
+            {
+                Type = "stock_movement",
+                PartId = AddPartInput.PartId,
+                PartName = part.PartName,
+                Message = $"Stock reserved: {quantity} unit(s) of {part.PartName} for Claim #{ClaimId}",
+                StockQuantity = remainingStock,
+                MovementType = "RESERVED",
+                Quantity = quantity,
+                ReferenceType = "CLAIM",
+                ReferenceId = ClaimId
+            });
+        
+        // Check for low stock alert
+        if (inventory != null && inventory.MinStockLevel.HasValue && inventory.StockQuantity < inventory.MinStockLevel.Value)
+        {
+            // Send low stock alert via SignalR
+            await _notificationHub.Clients.Groups("Admin", "EVM Staff", "EVM")
+                .SendAsync("ReceiveNotification", new
+                {
+                    Type = "low_stock_alert",
+                    Title = "Low Stock Alert",
+                    Message = $"⚠️ {part.PartName} is low on stock. Only {inventory.StockQuantity} units remaining (Min: {inventory.MinStockLevel})",
+                    PartId = AddPartInput.PartId,
+                    PartName = part.PartName,
+                    StockQuantity = inventory.StockQuantity,
+                    MinStockLevel = inventory.MinStockLevel.Value
+                });
+        }
+        
+        // Send SignalR notification to claim group
         var updatedClaim = await _claimService.GetClaimAsync(ClaimId);
         if (updatedClaim != null)
         {
@@ -192,10 +291,26 @@ public class DetailsModel : PageModel
                     ClaimId = ClaimId,
                     Type = "part_added",
                     PartName = part.PartName,
-                    Message = $"Part {part.PartName} added to claim #{ClaimId}",
+                    Quantity = quantity,
+                    Message = $"Part {part.PartName} ({quantity} unit(s)) added to claim #{ClaimId}",
                     TotalCost = updatedClaim.TotalCost
                 });
         }
+
+        // Send SignalR update for Recent Part Updates (stock movement)
+        await _notificationHub.Clients.All
+            .SendAsync("ReceivePartUpdate", new
+            {
+                Type = "stock_movement",
+                PartId = AddPartInput.PartId,
+                PartName = part.PartName,
+                Message = $"Stock reserved: {quantity} unit(s) of {part.PartName} for Claim #{ClaimId}",
+                StockQuantity = remainingStock,
+                MovementType = "RESERVED",
+                Quantity = -quantity,
+                ReferenceType = "CLAIM",
+                ReferenceId = ClaimId
+            });
         
         // Preserve AI suggestion từ Session khi redirect
         var sessionKey = $"AiSuggestion_{ClaimId}";
@@ -233,13 +348,49 @@ public class DetailsModel : PageModel
 
         var usedParts = claim.UsedParts?.ToList() ?? new List<UsedPart>();
         await HydrateUsedPartsAsync(usedParts);
-        if (usedParts.All(p => p.UsedPartId != usedPartId))
+        var partToRemove = usedParts.FirstOrDefault(p => p.UsedPartId == usedPartId);
+        if (partToRemove == null)
         {
             TempData["Error"] = "Used part not found in this claim.";
             return RedirectToPage(new { id });
         }
 
+        // Get part info before removing
+        var part = await _partService.GetPartAsync(partToRemove.PartId);
+        var partName = part?.PartName ?? $"Part #{partToRemove.PartId}";
+        var quantity = partToRemove.Quantity;
+
         await _claimService.RemoveUsedPartAsync(usedPartId, GetUserId());
+        
+        // Release stock when part is removed
+        int remainingStock = 0;
+        try
+        {
+            await _partService.ReleaseStockAsync(partToRemove.PartId, quantity, id, GetUserId());
+            var inventory = await _partService.GetInventoryAsync(partToRemove.PartId);
+            remainingStock = inventory?.StockQuantity ?? 0;
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't fail the operation
+            TempData["Warning"] = $"Part removed but stock release failed: {ex.Message}";
+        }
+
+        // Send SignalR update for Recent Part Updates (stock movement)
+        await _notificationHub.Clients.All
+            .SendAsync("ReceivePartUpdate", new
+            {
+                Type = "stock_movement",
+                PartId = partToRemove.PartId,
+                PartName = partName,
+                Message = $"Stock released: {quantity} unit(s) of {partName} from Claim #{id}",
+                StockQuantity = remainingStock,
+                MovementType = "RELEASED",
+                Quantity = quantity,
+                ReferenceType = "CLAIM",
+                ReferenceId = id
+            });
+        
         TempData["Success"] = "Đã xoá linh kiện khỏi yêu cầu.";
         
         // Preserve AI suggestion từ Session khi redirect
@@ -494,18 +645,24 @@ public class DetailsModel : PageModel
         {
             return Forbid();
         }
+        
+        var existingClaim = await _claimService.GetClaimAsync(id);
         await _claimService.ApproveClaimAsync(id, GetUserId(), "Approved", null);
         TempData["Success"] = "Approved.";
-        
-        // Send SignalR notification
-        await _notificationHub.Clients.Group($"Claim_{id}")
-            .SendAsync("ReceiveClaimUpdate", new
+ 
+        var updatedClaim = await _claimService.GetClaimAsync(id);
+        var updatePayload = BuildClaimUpdatePayload(id, updatedClaim, updatedClaim?.StatusCode ?? "Approved", existingClaim?.StatusCode ?? "Pending", $"Claim #{id} has been approved");
+
+        await BroadcastClaimUpdateAsync(id, updatePayload);
+ 
+        // Send notification to SC Staff and SC Technician
+        await _notificationHub.Clients.Groups("SC Staff", "SC Technician", "SC")
+            .SendAsync("ReceiveNotification", new
             {
-                ClaimId = id,
-                Type = "status_change",
-                NewStatus = "Approved",
-                OldStatus = "Pending",
-                Message = $"Claim #{id} has been approved"
+                Type = "info",
+                Title = "Claim Approved",
+                Message = $"Claim #{id} has been approved by EVM" + (updatedClaim != null && !string.IsNullOrEmpty(updatedClaim.Vin) ? $" (VIN: {updatedClaim.Vin})" : ""),
+                ClaimId = id
             });
         
         return RedirectToPage(new { id });
@@ -516,17 +673,43 @@ public class DetailsModel : PageModel
         {
             return Forbid();
         }
-        await _claimService.RejectClaimAsync(id, GetUserId(), "Rejected");
-        TempData["Success"] = "Rejected.";
-        
-        // Send SignalR notification
-        await _notificationHub.Clients.Group($"Claim_{id}")
-            .SendAsync("ReceiveClaimUpdate", new
+
+        // Get claim and used parts before rejecting
+        var claim = await _claimService.GetClaimAsync(id);
+        if (claim != null)
+        {
+            // Release all reserved stock for this claim
+            var usedParts = claim.UsedParts?.ToList() ?? new List<UsedPart>();
+            await HydrateUsedPartsAsync(usedParts);
+            foreach (var usedPart in usedParts)
             {
-                ClaimId = id,
-                Type = "status_change",
-                NewStatus = "Rejected",
-                Message = $"Claim #{id} has been rejected"
+                try
+                {
+                    await _partService.ReleaseStockAsync(usedPart.PartId, usedPart.Quantity, id, GetUserId());
+                }
+                catch (Exception)
+                {
+                    // Log error but continue releasing other parts
+                }
+            }
+        }
+
+        await _claimService.RejectClaimAsync(id, GetUserId(), "Rejected");
+        TempData["Success"] = "Rejected. All reserved stock has been released.";
+        
+        var rejectedClaim = await _claimService.GetClaimAsync(id);
+        var rejectPayload = BuildClaimUpdatePayload(id, rejectedClaim, rejectedClaim?.StatusCode ?? "Rejected", claim?.StatusCode, $"Claim #{id} has been rejected");
+
+        await BroadcastClaimUpdateAsync(id, rejectPayload);
+        
+        // Send notification to SC Staff and SC Technician
+        await _notificationHub.Clients.Groups("SC Staff", "SC Technician", "SC")
+            .SendAsync("ReceiveNotification", new
+            {
+                Type = "warning",
+                Title = "Claim Rejected",
+                Message = $"Claim #{id} has been rejected by EVM" + (rejectedClaim != null && !string.IsNullOrEmpty(rejectedClaim.Vin) ? $" (VIN: {rejectedClaim.Vin})" : ""),
+                ClaimId = id
             });
         
         return RedirectToPage(new { id });
@@ -537,10 +720,11 @@ public class DetailsModel : PageModel
         {
             return Forbid();
         }
+        var claim = await _claimService.GetClaimAsync(id);
         await _claimService.PutClaimOnHoldAsync(id, GetUserId(), "On hold");
         TempData["Success"] = "On hold.";
         
-        // Send SignalR notification
+        // Send SignalR notification to claim group
         await _notificationHub.Clients.Group($"Claim_{id}")
             .SendAsync("ReceiveClaimUpdate", new
             {
@@ -550,8 +734,78 @@ public class DetailsModel : PageModel
                 Message = $"Claim #{id} has been put on hold"
             });
         
+        // Send notification to SC Staff and SC Technician
+        await _notificationHub.Clients.Groups("SC Staff", "SC Technician", "SC")
+            .SendAsync("ReceiveNotification", new
+            {
+                Type = "warning",
+                Title = "Claim On Hold",
+                Message = $"Claim #{id} has been put on hold by EVM" + (claim != null && !string.IsNullOrEmpty(claim.Vin) ? $" (VIN: {claim.Vin})" : ""),
+                ClaimId = id
+            });
+        
         return RedirectToPage(new { id });
     }
+
+    public async Task<IActionResult> OnPostRevertToPendingAsync(int id)
+    {
+        if (!User.IsInRole("EVM Staff") && !User.IsInRole("EVM") && !User.IsInRole("Admin"))
+        {
+            return Forbid();
+        }
+
+        var claim = await _claimService.GetClaimAsync(id);
+        if (claim == null)
+        {
+            TempData["Error"] = "Claim not found.";
+            return RedirectToPage(new { id });
+        }
+
+        if (!string.Equals(claim.StatusCode, "Approved", StringComparison.OrdinalIgnoreCase))
+        {
+            TempData["Error"] = "Only Approved claims can be reverted to Pending.";
+            return RedirectToPage(new { id });
+        }
+
+        // Release all reserved stock for this claim (similar to reject logic)
+        if (claim.UsedParts != null)
+        {
+            var usedParts = claim.UsedParts.ToList();
+            await HydrateUsedPartsAsync(usedParts);
+            foreach (var usedPart in usedParts)
+            {
+                try
+                {
+                    await _partService.ReleaseStockAsync(usedPart.PartId, usedPart.Quantity, id, GetUserId());
+                }
+                catch (Exception)
+                {
+                    // Log error but continue releasing other parts
+                }
+            }
+        }
+
+        await _claimService.RevertToPendingAsync(id, GetUserId(), "Reverted to Pending");
+        TempData["Success"] = "Claim reverted to Pending status. All reserved stock has been released.";
+
+        var revertedClaim = await _claimService.GetClaimAsync(id);
+        var revertPayload = BuildClaimUpdatePayload(id, revertedClaim, revertedClaim?.StatusCode ?? "Pending", claim.StatusCode, $"Claim #{id} has been reverted to Pending");
+
+        await BroadcastClaimUpdateAsync(id, revertPayload);
+
+        // Send notification to SC Staff and SC Technician
+        await _notificationHub.Clients.Groups("SC Staff", "SC Technician", "SC")
+            .SendAsync("ReceiveNotification", new
+            {
+                Type = "info",
+                Title = "Claim Reverted to Pending",
+                Message = $"Claim #{id} has been reverted to Pending by EVM" + (revertedClaim != null && !string.IsNullOrEmpty(revertedClaim.Vin) ? $" (VIN: {revertedClaim.Vin})" : ""),
+                ClaimId = id
+            });
+
+        return RedirectToPage(new { id });
+    }
+
     public async Task<IActionResult> OnPostCompleteAsync(int id, string? technicianNote)
     {
         if (!User.IsInRole("SC Technician") && !User.IsInRole("SC") && !User.IsInRole("Admin"))
@@ -569,6 +823,22 @@ public class DetailsModel : PageModel
             TempData["Error"] = "Claim must be InProgress before completion.";
             return RedirectToPage(new { id });
         }
+
+        // Mark reserved stock as consumed (OUT movement)
+        var usedParts = claim.UsedParts?.ToList() ?? new List<UsedPart>();
+        await HydrateUsedPartsAsync(usedParts);
+        foreach (var usedPart in usedParts)
+        {
+            try
+            {
+                await _partService.ConsumeStockAsync(usedPart.PartId, usedPart.Quantity, id, GetUserId());
+            }
+            catch (Exception ex)
+            {
+                // Log error but continue
+            }
+        }
+
         var note = string.IsNullOrWhiteSpace(technicianNote) ? "Work completed" : technicianNote;
         await _claimService.CompleteClaimAsync(id, GetUserId(), DateOnly.FromDateTime(DateTime.UtcNow), note);
         TempData["Success"] = "Completed.";
@@ -640,6 +910,116 @@ public class DetailsModel : PageModel
             });
         
         return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostAssignTechnicianAsync(int id)
+    {
+        if (!User.IsInRole("Admin") && !User.IsInRole("EVM Staff") && !User.IsInRole("EVM"))
+        {
+            return Forbid();
+        }
+
+        if (!SelectedTechnicianId.HasValue)
+        {
+            TempData["Error"] = "Please select a technician.";
+            return RedirectToPage(new { id });
+        }
+
+        var claim = await _claimService.GetClaimAsync(id);
+        if (claim is null)
+        {
+            TempData["Error"] = "Claim not found.";
+            return RedirectToPage(new { id });
+        }
+
+        if (string.Equals(claim.StatusCode, "Completed", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(claim.StatusCode, "Closed", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(claim.StatusCode, "Archived", StringComparison.OrdinalIgnoreCase))
+        {
+            TempData["Error"] = "Cannot assign technician to completed, closed, or archived claims.";
+            return RedirectToPage(new { id });
+        }
+
+        var userId = GetUserId();
+        await _claimService.AssignTechnicianAsync(id, SelectedTechnicianId.Value, userId);
+
+        // SignalR notification
+        var updatedClaim = await _claimService.GetClaimAsync(id);
+        if (updatedClaim != null)
+        {
+            // Send notification to assigned technician
+            await _notificationHub.Clients.User(SelectedTechnicianId.Value.ToString())
+                .SendAsync("ReceiveNotification", new
+                {
+                    Type = "claim_assigned",
+                    Title = "New Claim Assigned",
+                    Message = $"Claim #{id} has been assigned to you",
+                    ClaimId = id,
+                    Vin = updatedClaim.Vin
+                });
+
+            // Build comprehensive claim update payload
+            var claimUpdatePayload = BuildClaimUpdatePayload(id, updatedClaim, updatedClaim.StatusCode, claim?.StatusCode, $"Claim #{id} has been assigned to you");
+            
+            // Send both ReceiveNewClaim and ReceiveClaimUpdate to technician so claim appears in their list
+            await _notificationHub.Clients.User(SelectedTechnicianId.Value.ToString())
+                .SendAsync("ReceiveNewClaim", claimUpdatePayload);
+            
+            await _notificationHub.Clients.User(SelectedTechnicianId.Value.ToString())
+                .SendAsync("ReceiveClaimUpdate", claimUpdatePayload);
+
+            // Also send to SC Technician group so all technicians see the update
+            await _notificationHub.Clients.Groups("SC Technician", "SC")
+                .SendAsync("ReceiveClaimUpdate", claimUpdatePayload);
+
+            // Send to claim group for details page updates
+            await _notificationHub.Clients.Group($"Claim_{id}")
+                .SendAsync("ReceiveClaimUpdate", new
+                {
+                    ClaimId = id,
+                    Type = "technician_assigned",
+                    TechnicianId = SelectedTechnicianId.Value,
+                    Message = $"Technician assigned to claim #{id}"
+                });
+        }
+
+        TempData["Success"] = "Technician assigned successfully.";
+        return RedirectToPage(new { id });
+    }
+
+    private object BuildClaimUpdatePayload(int claimId, WarrantyClaim? claim, string newStatus, string? oldStatus, string message)
+    {
+        var resolvedStatus = string.IsNullOrWhiteSpace(newStatus)
+            ? (claim?.StatusCode ?? string.Empty)
+            : newStatus;
+
+        return new
+        {
+            ClaimId = claim?.ClaimId ?? claimId,
+            Type = "status_change",
+            NewStatus = resolvedStatus,
+            OldStatus = oldStatus,
+            Message = message,
+            StatusCode = resolvedStatus,
+            Vin = claim?.Vin,
+            VehicleModel = claim?.Vehicle?.Model,
+            Description = claim?.Description,
+            ServiceCenterName = claim?.ServiceCenter?.Name,
+            DateDiscovered = claim != null ? claim.DateDiscovered.ToString("yyyy-MM-dd") : null,
+            TechnicianId = claim?.TechnicianId,
+            TechnicianName = claim?.Technician?.FullName,
+            UpdatedAt = DateTime.UtcNow
+        };
+    }
+
+    private Task BroadcastClaimUpdateAsync(int claimId, object payload)
+    {
+        var roleGroups = new[] { "Admin", "EVM Staff", "EVM", "SC Staff", "SC Technician", "SC" };
+
+        return Task.WhenAll(
+            _notificationHub.Clients.Group($"Claim_{claimId}").SendAsync("ReceiveClaimUpdate", payload),
+            _notificationHub.Clients.Groups(roleGroups).SendAsync("ReceiveClaimUpdate", payload)
+        );
     }
 
     private async Task<IActionResult> Reload()

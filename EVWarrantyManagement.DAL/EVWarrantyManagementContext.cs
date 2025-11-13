@@ -29,6 +29,12 @@ public partial class EVWarrantyManagementContext : DbContext
 
     public virtual DbSet<ServiceCenter> ServiceCenters { get; set; }
 
+    public virtual DbSet<ServiceCenterTechnician> ServiceCenterTechnicians { get; set; }
+
+    public virtual DbSet<PartInventory> PartInventories { get; set; }
+
+    public virtual DbSet<PartStockMovement> PartStockMovements { get; set; }
+
     public virtual DbSet<UsedPart> UsedParts { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
@@ -38,6 +44,12 @@ public partial class EVWarrantyManagementContext : DbContext
     public virtual DbSet<WarrantyClaim> WarrantyClaims { get; set; }
 
     public virtual DbSet<WarrantyHistory> WarrantyHistories { get; set; }
+
+    public virtual DbSet<ServiceBooking> ServiceBookings { get; set; }
+
+    public virtual DbSet<ServiceBookingStatusLog> ServiceBookingStatusLogs { get; set; }
+
+    public virtual DbSet<ServiceBookingPart> ServiceBookingParts { get; set; }
 
     private string GetConnectionString()
     {
@@ -133,6 +145,77 @@ public partial class EVWarrantyManagementContext : DbContext
             entity.Property(e => e.ContactPhone).HasMaxLength(20);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Name).HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<ServiceCenterTechnician>(entity =>
+        {
+            entity.HasKey(e => e.ServiceCenterTechnicianId).HasName("PK_ServiceCenterTechnicians");
+
+            entity.ToTable("ServiceCenterTechnicians", "ev");
+
+            entity.Property(e => e.AssignedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.IsActive).HasDefaultValue(true);
+
+            entity.HasOne(d => d.ServiceCenter).WithMany(p => p.ServiceCenterTechnicians)
+                .HasForeignKey(d => d.ServiceCenterId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ServiceCenterTechnicians_ServiceCenter");
+
+            entity.HasOne(d => d.User).WithMany(p => p.ServiceCenterTechnicians)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ServiceCenterTechnicians_User");
+
+            entity.HasOne(d => d.AssignedByUser).WithMany(p => p.ServiceCenterTechnicianAssignments)
+                .HasForeignKey(d => d.AssignedByUserId)
+                .HasConstraintName("FK_ServiceCenterTechnicians_AssignedBy");
+        });
+
+        modelBuilder.Entity<PartInventory>(entity =>
+        {
+            entity.HasKey(e => e.InventoryId).HasName("PK_PartInventory");
+
+            entity.ToTable("PartInventory", "ev");
+
+            entity.HasIndex(e => e.PartId, "IX_PartInventory_PartId").IsUnique();
+
+            entity.Property(e => e.LastUpdated).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.StockQuantity).HasDefaultValue(0);
+
+            entity.HasOne(d => d.Part).WithOne(p => p.PartInventory)
+                .HasForeignKey<PartInventory>(d => d.PartId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PartInventory_Part");
+
+            entity.HasOne(d => d.UpdatedByUser).WithMany(p => p.PartInventoryUpdates)
+                .HasForeignKey(d => d.UpdatedByUserId)
+                .HasConstraintName("FK_PartInventory_UpdatedBy");
+        });
+
+        modelBuilder.Entity<PartStockMovement>(entity =>
+        {
+            entity.HasKey(e => e.MovementId).HasName("PK_PartStockMovements");
+
+            entity.ToTable("PartStockMovements", "ev");
+
+            entity.HasIndex(e => e.PartId, "IX_PartStockMovements_PartId");
+            entity.HasIndex(e => e.CreatedAt, "IX_PartStockMovements_CreatedAt");
+            entity.HasIndex(e => new { e.ReferenceType, e.ReferenceId }, "IX_PartStockMovements_Reference");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.MovementType).HasMaxLength(20);
+            entity.Property(e => e.Note).HasMaxLength(500);
+            entity.Property(e => e.ReferenceType).HasMaxLength(50);
+
+            entity.HasOne(d => d.Part).WithMany(p => p.PartStockMovements)
+                .HasForeignKey(d => d.PartId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PartStockMovements_Part");
+
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.PartStockMovements)
+                .HasForeignKey(d => d.CreatedByUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_PartStockMovements_CreatedBy");
         });
 
         modelBuilder.Entity<UsedPart>(entity =>
@@ -271,6 +354,109 @@ public partial class EVWarrantyManagementContext : DbContext
             entity.HasOne(d => d.Vehicle).WithMany()
                 .HasForeignKey(d => d.VehicleId)
                 .HasConstraintName("FK_WarrantyHistory_Vehicle");
+        });
+
+        modelBuilder.Entity<ServiceBooking>(entity =>
+        {
+            entity.HasKey(e => e.ServiceBookingId).HasName("PK_ServiceBookings");
+
+            entity.ToTable("ServiceBookings", "ev");
+
+            entity.HasIndex(e => e.Status, "IX_ServiceBookings_Status");
+            entity.HasIndex(e => new { e.ServiceCenterId, e.PreferredStart }, "IX_ServiceBookings_ServiceCenter_Date");
+            entity.HasIndex(e => new { e.AssignedTechnicianId, e.PreferredStart }, "IX_ServiceBookings_AssignedTechnician")
+                .HasFilter("([AssignedTechnicianId] IS NOT NULL)");
+
+            entity.Property(e => e.ServiceType).HasMaxLength(100);
+            entity.Property(e => e.Status)
+                .HasMaxLength(30)
+                .HasDefaultValue("Pending");
+            entity.Property(e => e.CustomerNote).HasMaxLength(1000);
+            entity.Property(e => e.InternalNote).HasMaxLength(1000);
+            entity.Property(e => e.RejectionReason).HasMaxLength(1000);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.EstimatedDurationMinutes).HasDefaultValue(60);
+            entity.Property(e => e.PreferredStart).HasColumnType("datetime2(0)");
+            entity.Property(e => e.PreferredEnd).HasColumnType("datetime2(0)");
+            entity.Property(e => e.ConfirmedStart).HasColumnType("datetime2(0)");
+            entity.Property(e => e.ConfirmedEnd).HasColumnType("datetime2(0)");
+            entity.Property(e => e.ApprovedAt).HasColumnType("datetime2(0)");
+            entity.Property(e => e.CompletedAt).HasColumnType("datetime2(0)");
+            entity.Property(e => e.CancelledAt).HasColumnType("datetime2(0)");
+
+            entity.HasOne(d => d.Customer).WithMany(p => p.ServiceBookings)
+                .HasForeignKey(d => d.CustomerId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ServiceBookings_Customers");
+
+            entity.HasOne(d => d.Vehicle).WithMany(p => p.ServiceBookings)
+                .HasForeignKey(d => d.VehicleId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ServiceBookings_Vehicles");
+
+            entity.HasOne(d => d.ServiceCenter).WithMany(p => p.ServiceBookings)
+                .HasForeignKey(d => d.ServiceCenterId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ServiceBookings_ServiceCenters");
+
+            entity.HasOne(d => d.AssignedTechnician).WithMany(p => p.ServiceBookingsAssigned)
+                .HasForeignKey(d => d.AssignedTechnicianId)
+                .HasConstraintName("FK_ServiceBookings_AssignedTechnician");
+
+            entity.HasOne(d => d.ApprovedByUser).WithMany(p => p.ServiceBookingsApproved)
+                .HasForeignKey(d => d.ApprovedByUserId)
+                .HasConstraintName("FK_ServiceBookings_ApprovedBy");
+
+            entity.HasOne(d => d.CancelledByUser).WithMany(p => p.ServiceBookingsCancelled)
+                .HasForeignKey(d => d.CancelledByUserId)
+                .HasConstraintName("FK_ServiceBookings_CancelledBy");
+        });
+
+        modelBuilder.Entity<ServiceBookingStatusLog>(entity =>
+        {
+            entity.HasKey(e => e.ServiceBookingStatusLogId).HasName("PK_ServiceBookingStatusLogs");
+
+            entity.ToTable("ServiceBookingStatusLogs", "ev");
+
+            entity.Property(e => e.OldStatus).HasMaxLength(30);
+            entity.Property(e => e.NewStatus).HasMaxLength(30);
+            entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.Property(e => e.ChangedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.ServiceBooking).WithMany(p => p.StatusLogs)
+                .HasForeignKey(d => d.ServiceBookingId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ServiceBookingStatusLogs_ServiceBookings");
+
+            entity.HasOne(d => d.ChangedByUser).WithMany(p => p.ServiceBookingStatusLogs)
+                .HasForeignKey(d => d.ChangedByUserId)
+                .HasConstraintName("FK_ServiceBookingStatusLogs_Users");
+        });
+
+        modelBuilder.Entity<ServiceBookingPart>(entity =>
+        {
+            entity.HasKey(e => e.ServiceBookingPartId).HasName("PK_ServiceBookingParts");
+
+            entity.ToTable("ServiceBookingParts", "ev");
+
+            entity.Property(e => e.PartCost).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Note).HasMaxLength(500);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.ServiceBooking).WithMany(p => p.ServiceBookingParts)
+                .HasForeignKey(d => d.ServiceBookingId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ServiceBookingParts_ServiceBookings");
+
+            entity.HasOne(d => d.Part).WithMany(p => p.ServiceBookingParts)
+                .HasForeignKey(d => d.PartId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_ServiceBookingParts_Parts");
+
+            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.ServiceBookingParts)
+                .HasForeignKey(d => d.CreatedByUserId)
+                .HasConstraintName("FK_ServiceBookingParts_CreatedBy");
         });
 
         OnModelCreatingPartial(modelBuilder);

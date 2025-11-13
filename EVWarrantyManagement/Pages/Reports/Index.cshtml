@@ -79,6 +79,18 @@
         <div class="card shadow-sm border-0 h-100">
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="text-muted small">Avg Claim Value</div>
+                    <i class="bi bi-calculator text-info" style="font-size: 1.5rem;"></i>
+                </div>
+                <div class="display-6 fw-bold text-info">$@Model.AverageClaimValue.ToString("N2")</div>
+                <small class="text-muted">Per completed claim</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-2">
                     <div class="text-muted small">Pending</div>
                     <i class="bi bi-hourglass-split text-warning" style="font-size: 1.5rem;"></i>
                 </div>
@@ -148,6 +160,22 @@
     </div>
 </div>
 
+<!-- Revenue by Service Center -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header gradient-success text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-building me-2"></i>Revenue by Service Center (@Model.Year)
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="serviceCenterChart" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Data Tables -->
 <div class="row g-4">
     <div class="col-lg-6">
@@ -205,6 +233,54 @@
                                 <tr>
                                     <td><i class="bi bi-car-front text-primary me-2"></i>@kv.Key</td>
                                     <td class="text-end fw-semibold">@kv.Value</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Revenue by Service Center Table -->
+<div class="row g-4 mb-4">
+    <div class="col-lg-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header gradient-success text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-table me-2"></i>Revenue by Service Center (@Model.Year)
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Service Center</th>
+                                <th class="text-end">Revenue</th>
+                                <th class="text-end">Percentage</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                var totalRevenueForYear = Model.RevenueByServiceCenter.Values.Sum();
+                            }
+                            @foreach (var kv in Model.RevenueByServiceCenter.OrderByDescending(x => x.Value))
+                            {
+                                var percentage = totalRevenueForYear > 0 ? (kv.Value / totalRevenueForYear * 100) : 0;
+                                <tr>
+                                    <td><i class="bi bi-building text-primary me-2"></i>@kv.Key</td>
+                                    <td class="text-end fw-semibold text-success">$@kv.Value.ToString("N2")</td>
+                                    <td class="text-end">
+                                        <span class="badge bg-info">@percentage.ToString("F1")%</span>
+                                    </td>
+                                </tr>
+                            }
+                            @if (!Model.RevenueByServiceCenter.Any())
+                            {
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted py-3">No revenue data available</td>
                                 </tr>
                             }
                         </tbody>
@@ -406,5 +482,63 @@
                 }
             }
         });
+
+        // Service Center Revenue Chart (Bar)
+        const serviceCenterCtx = document.getElementById('serviceCenterChart')?.getContext('2d');
+        if (serviceCenterCtx) {
+            const serviceCenterData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.RevenueByServiceCenter));
+            const labels = Object.keys(serviceCenterData);
+            const revenues = Object.values(serviceCenterData);
+
+            new Chart(serviceCenterCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Revenue ($)',
+                        data: revenues,
+                        backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Revenue: $' + context.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+                                }
+                            },
+                            title: {
+                                display: true,
+                                text: 'Revenue ($)'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Service Center'
+                            }
+                        }
+                    }
+                }
+            });
+        }
     </script>
 }

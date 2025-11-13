@@ -36,10 +36,16 @@ public interface IWarrantyClaimRepository
 
     Task<IReadOnlyDictionary<string, decimal>> GetRevenueByMonthAsync(int year, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyDictionary<string, decimal>> GetRevenueByServiceCenterAsync(int? year, CancellationToken cancellationToken = default);
+
     Task<IReadOnlyList<WarrantyHistory>> GetArchivedClaimsAsync(int userId, string role, CancellationToken cancellationToken = default);
 
     Task<WarrantyHistory?> GetArchivedClaimAsync(int historyId, CancellationToken cancellationToken = default);
 
     Task RemoveUsedPartAsync(int usedPartId, int removedByUserId, CancellationToken cancellationToken = default);
+
+    Task AssignTechnicianAsync(int claimId, int technicianId, int assignedByUserId, CancellationToken cancellationToken = default);
+
+    Task RevertToPendingAsync(int claimId, int userId, string? note, CancellationToken cancellationToken = default);
 }
 

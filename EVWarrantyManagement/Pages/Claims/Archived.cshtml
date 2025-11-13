@@ -5,60 +5,119 @@
     var role = Model.PrimaryRole;
 }
 
-<nav aria-label="breadcrumb">
+<nav aria-label="breadcrumb" class="mb-4">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a asp-page="/Dashboard/Index">Dashboard</a></li>
+        <li class="breadcrumb-item"><a asp-page="/Dashboard/Index"><i class="bi bi-house me-1"></i>Dashboard</a></li>
         <li class="breadcrumb-item"><a asp-page="/Claims/Index">Claims</a></li>
         <li class="breadcrumb-item active" aria-current="page">Archived</li>
     </ol>
 </nav>
 
-<h2 class="mb-3">Archived Claims</h2>
+<div class="mb-4">
+    <h2 class="mb-1">
+        <i class="bi bi-archive me-2"></i>Archived Claims
+    </h2>
+    <p class="text-muted mb-0">View completed and archived warranty claims</p>
+</div>
 
 @if (TempData["Error"] is string error)
 {
-    <div class="alert alert-danger">@error</div>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>@error
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
 }
 
-<div class="table-responsive">
-    <table class="table table-striped align-middle">
-        <thead>
-            <tr>
-                <th>HistoryID</th>
-                <th>ClaimID</th>
-                <th>Model</th>
-                <th>VIN</th>
-                <th>Service Center</th>
-                <th>Completed By</th>
-                <th>Completed Date</th>
-                <th>Archived At</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
+@if (Model.Histories.Count == 0)
+{
+    <div class="card shadow-sm border-0">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-inbox display-1 text-muted mb-3"></i>
+            <h4 class="text-muted">No Archived Claims</h4>
+            <p class="text-muted mb-4">There are no archived claims to display.</p>
+            <a class="btn btn-primary" asp-page="/Claims/Index">
+                <i class="bi bi-arrow-left me-1"></i>Back to Claims
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-4 mb-4">
         @foreach (var history in Model.Histories)
         {
-            <tr>
-                <td>@history.HistoryId</td>
-                <td>@history.ClaimId</td>
-                <td>@(history.Vehicle?.Model ?? "N/A")</td>
-                <td>@history.Vin</td>
-                <td>@(history.ServiceCenter?.Name ?? $"#{history.ServiceCenterId}")</td>
-                <td>@(history.CompletedByUser?.FullName ?? $"User #{history.CompletedByUserId}")</td>
-                <td>@history.CompletionDate</td>
-                <td>@history.ArchivedAt</td>
-                <td class="text-nowrap">
-                    <a class="btn btn-sm btn-outline-secondary" asp-page="ArchivedDetail" asp-route-id="@history.HistoryId">View</a>
-                </td>
-            </tr>
+            <div class="col-12 col-md-6 col-lg-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header gradient-primary">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0 text-white">
+                                <i class="bi bi-file-earmark-text me-2"></i>Claim #@history.ClaimId
+                            </h5>
+                            <span class="badge bg-light text-dark">#@history.HistoryId</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <dl class="row mb-3">
+                            <dt class="col-5 d-flex align-items-center text-muted small">
+                                <i class="bi bi-car-front text-primary me-2"></i>Model
+                            </dt>
+                            <dd class="col-7 mb-2">
+                                <strong>@(history.Vehicle?.Model ?? "N/A")</strong>
+                            </dd>
+                            
+                            <dt class="col-5 d-flex align-items-center text-muted small">
+                                <i class="bi bi-upc-scan text-primary me-2"></i>VIN
+                            </dt>
+                            <dd class="col-7 mb-2">
+                                <code class="small">@history.Vin</code>
+                            </dd>
+                            
+                            <dt class="col-5 d-flex align-items-center text-muted small">
+                                <i class="bi bi-building text-primary me-2"></i>Service Center
+                            </dt>
+                            <dd class="col-7 mb-2">
+                                @(history.ServiceCenter?.Name ?? $"#{history.ServiceCenterId}")
+                            </dd>
+                            
+                            <dt class="col-5 d-flex align-items-center text-muted small">
+                                <i class="bi bi-person-check text-primary me-2"></i>Completed By
+                            </dt>
+                            <dd class="col-7 mb-2">
+                                @(history.CompletedByUser?.FullName ?? $"User #{history.CompletedByUserId}")
+                            </dd>
+                            
+                            <dt class="col-5 d-flex align-items-center text-muted small">
+                                <i class="bi bi-calendar-check text-primary me-2"></i>Completed Date
+                            </dt>
+                            <dd class="col-7 mb-2">
+                                @(history.CompletionDate.HasValue ? history.CompletionDate.Value.ToString("MM/dd/yyyy") : "N/A")
+                            </dd>
+                            
+                            <dt class="col-5 d-flex align-items-center text-muted small">
+                                <i class="bi bi-archive text-primary me-2"></i>Archived At
+                            </dt>
+                            <dd class="col-7 mb-2">
+                                @history.ArchivedAt.ToString("MM/dd/yyyy HH:mm")
+                            </dd>
+                        </dl>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0 pt-0">
+                        <a class="btn btn-primary w-100" asp-page="ArchivedDetail" asp-route-id="@history.HistoryId">
+                            <i class="bi bi-eye me-1"></i>View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
         }
-        </tbody>
-    </table>
-</div>
-
-<div class="mt-4">
-    <a class="btn btn-secondary" asp-page="/Claims/Index">
-        <i class="bi bi-arrow-left me-1"></i>Back to Claims
-    </a>
-</div>
+    </div>
+    
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <span class="text-muted">Total: <strong>@Model.Histories.Count</strong> archived claim(s)</span>
+        </div>
+        <a class="btn btn-secondary" asp-page="/Claims/Index">
+            <i class="bi bi-arrow-left me-1"></i>Back to Claims
+        </a>
+    </div>
+}
 

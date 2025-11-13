@@ -18,4 +18,10 @@ public partial class Part
     public DateTime CreatedAt { get; set; }
 
     public virtual ICollection<UsedPart> UsedParts { get; set; } = new List<UsedPart>();
+
+    public virtual PartInventory? PartInventory { get; set; }
+
+    public virtual ICollection<PartStockMovement> PartStockMovements { get; set; } = new List<PartStockMovement>();
+
+    public virtual ICollection<ServiceBookingPart> ServiceBookingParts { get; set; } = new List<ServiceBookingPart>();
 }

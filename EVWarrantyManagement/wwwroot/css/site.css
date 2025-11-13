@@ -40,6 +40,15 @@ html {
     border-radius: 0.25rem;
 }
 
+.navbar .notification-dropdown {
+    z-index: 2000;
+    position: absolute;
+}
+
+#notificationBadge {
+    z-index: 2100;
+}
+
 /* Compact table styles */
 .table-sm td,
 .table-sm th {

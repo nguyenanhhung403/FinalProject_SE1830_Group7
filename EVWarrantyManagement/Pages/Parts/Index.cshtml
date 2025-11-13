@@ -27,17 +27,45 @@
                 <th>Code</th>
                 <th>Name</th>
                 <th>Price</th>
+                <th>Stock</th>
+                <th>Status</th>
                 <th></th>
             </tr>
         </thead>
         <tbody>
         @foreach (var p in Model.Parts)
         {
+            var inventory = Model.PartInventories.GetValueOrDefault(p.PartId);
+            var stockQty = inventory?.StockQuantity ?? 0;
+            var minLevel = inventory?.MinStockLevel ?? 0;
+            var status = "In Stock";
+            var statusClass = "bg-success";
+            if (stockQty == 0)
+            {
+                status = "Out of Stock";
+                statusClass = "bg-danger";
+            }
+            else if (minLevel > 0 && stockQty < minLevel)
+            {
+                status = "Low Stock";
+                statusClass = "bg-warning text-dark";
+            }
             <tr>
-                <td>@p.PartCode</td>
+                <td><code>@p.PartCode</code></td>
                 <td>@p.PartName</td>
-                <td>@p.UnitPrice</td>
+                <td>@(p.UnitPrice.HasValue ? $"${p.UnitPrice.Value:N2}" : "N/A")</td>
+                <td>
+                    <strong>@stockQty</strong>
+                    @if (minLevel > 0)
+                    {
+                        <small class="text-muted">(Min: @minLevel)</small>
+                    }
+                </td>
+                <td><span class="badge @statusClass">@status</span></td>
                 <td class="text-nowrap">
+                    <a class="btn btn-sm btn-outline-primary" asp-page="Details" asp-route-id="@p.PartId">
+                        <i class="bi bi-eye"></i> Details
+                    </a>
                     <a class="btn btn-sm btn-secondary" asp-page="Edit" asp-route-id="@p.PartId">Edit</a>
                     <a class="btn btn-sm btn-danger" asp-page="Delete" asp-route-id="@p.PartId">Delete</a>
                 </td>
@@ -46,4 +74,84 @@
         </tbody>
     </table>
 </div>
+
+@if (Model.RecentStockMovements.Any())
+{
+    <div class="mt-4">
+        <h4 class="mb-3">
+            <i class="bi bi-clock-history me-2"></i>Recent Part Updates
+        </h4>
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>Part</th>
+                        <th>Movement Type</th>
+                        <th>Quantity</th>
+                        <th>User</th>
+                        <th>Reference</th>
+                        <th>Note</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var movement in Model.RecentStockMovements)
+                    {
+                        var movementTypeClass = movement.MovementType switch
+                        {
+                            "IN" => "text-success",
+                            "OUT" => "text-danger",
+                            "RESERVED" => "text-warning",
+                            "RELEASED" => "text-info",
+                            "ADJUSTMENT" => "text-primary",
+                            _ => "text-secondary"
+                        };
+                        var quantityDisplay = movement.Quantity > 0 ? $"+{movement.Quantity}" : movement.Quantity.ToString();
+                        var referenceDisplay = "";
+                        if (!string.IsNullOrEmpty(movement.ReferenceType) && movement.ReferenceId.HasValue)
+                        {
+                            if (movement.ReferenceType == "CLAIM")
+                            {
+                                referenceDisplay = $"<a href=\"/Claims/Details?id={movement.ReferenceId}\" class=\"text-decoration-none\">Claim #{movement.ReferenceId}</a>";
+                            }
+                            else
+                            {
+                                referenceDisplay = $"{movement.ReferenceType} #{movement.ReferenceId}";
+                            }
+                        }
+                        <tr>
+                            <td>@movement.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td>
+                                <a asp-page="Details" asp-route-id="@movement.PartId" class="text-decoration-none">
+                                    <strong>@(movement.Part?.PartName ?? $"Part #{movement.PartId}")</strong>
+                                </a>
+                                <br>
+                                <small class="text-muted">@(movement.Part?.PartCode ?? "N/A")</small>
+                            </td>
+                            <td>
+                                <span class="badge @movementTypeClass">@movement.MovementType</span>
+                            </td>
+                            <td>
+                                <strong class="@movementTypeClass">@quantityDisplay</strong>
+                            </td>
+                            <td>@(movement.CreatedByUser?.FullName ?? movement.CreatedByUser?.Username ?? "System")</td>
+                            <td>@Html.Raw(referenceDisplay)</td>
+                            <td>
+                                <small class="text-muted">@(movement.Note ?? "-")</small>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
+else
+{
+    <div class="mt-4">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>No recent stock movements found.
+        </div>
+    </div>
+}
 

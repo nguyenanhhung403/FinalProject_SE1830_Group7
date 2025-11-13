@@ -59,7 +59,7 @@
             <dt class="col-sm-3 d-flex align-items-center">
                 <i class="bi bi-car-front text-primary me-2"></i>Model
             </dt>
-            <dd class="col-sm-9">@Model.Claim?.Vehicle?.Model ?? "N/A"</dd>
+            <dd class="col-sm-9">@(Model.Claim?.Vehicle?.Model ?? "N/A")</dd>
             <dt class="col-sm-3 d-flex align-items-center">
                 <i class="bi bi-upc-scan text-primary me-2"></i>VIN
             </dt>
@@ -68,6 +68,106 @@
                 <i class="bi bi-building text-primary me-2"></i>Service Center
             </dt>
             <dd class="col-sm-9">@Model.Claim?.ServiceCenter?.Name</dd>
+            <dt class="col-sm-3 d-flex align-items-center">
+                <i class="bi bi-person-wrench text-primary me-2"></i>Technician
+            </dt>
+            <dd class="col-sm-9">
+                @{
+                    var isAssignmentLocked = string.Equals(status, "Closed", StringComparison.OrdinalIgnoreCase) || 
+                                              string.Equals(status, "Archived", StringComparison.OrdinalIgnoreCase) ||
+                                              string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase);
+                    var canAssignTechnician = (isEVM || isAdmin) && !isAssignmentLocked && 
+                                             Model.ServiceCenterTechnicians != null && 
+                                             Model.ServiceCenterTechnicians.Any();
+                }
+                @if (Model.Claim?.Technician != null)
+                {
+                    <div class="d-flex align-items-center gap-2">
+                        <span>@Model.Claim.Technician.FullName (@Model.Claim.Technician.Username)</span>
+                        @if (canAssignTechnician)
+                        {
+                            <form method="post" asp-page-handler="AssignTechnician" class="d-inline-flex gap-2">
+                                <input type="hidden" name="id" value="@Model.ClaimId" />
+                                <select name="SelectedTechnicianId" class="form-select form-select-sm" style="width: auto;">
+                                    <option value="">Change Technician...</option>
+                                    @foreach (var tech in Model.ServiceCenterTechnicians)
+                                    {
+                                        <option value="@tech.UserId">@tech.User.FullName (@tech.User.Username)</option>
+                                    }
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-person-plus me-1"></i>Reassign
+                                </button>
+                            </form>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div>
+                        <span class="text-muted d-block mb-2">Not assigned</span>
+                        @if (canAssignTechnician)
+                        {
+                            <form method="post" asp-page-handler="AssignTechnician" class="d-inline-flex gap-2">
+                                <input type="hidden" name="id" value="@Model.ClaimId" />
+                                <select name="SelectedTechnicianId" class="form-select form-select-sm" style="width: auto; min-width: 200px;" required>
+                                    <option value="">Select Technician...</option>
+                                    @foreach (var tech in Model.ServiceCenterTechnicians)
+                                    {
+                                        <option value="@tech.UserId">@tech.User.FullName (@tech.User.Username)</option>
+                                    }
+                                </select>
+                                <button type="submit" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-person-plus me-1"></i>Assign
+                                </button>
+                            </form>
+                        }
+                        else if ((isEVM || isAdmin) && isAssignmentLocked)
+                        {
+                            <span class="text-muted small d-block mt-1">
+                                <i class="bi bi-info-circle me-1"></i>Cannot assign technician to completed, closed, or archived claims.
+                            </span>
+                        }
+                        else if ((isEVM || isAdmin))
+                        {
+                            <span class="text-warning small d-block mt-1">
+                                <i class="bi bi-exclamation-triangle me-1"></i>No technicians available in this service center.
+                            </span>
+                        }
+                    </div>
+                }
+            </dd>
+            @if (isEVM || isAdmin)
+            {
+                <dt class="col-sm-3 d-flex align-items-center">
+                    <i class="bi bi-people text-primary me-2"></i>Technicians in Service Center
+                </dt>
+                <dd class="col-sm-9">
+                    @if (Model.ServiceCenterTechnicians.Any())
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var tech in Model.ServiceCenterTechnicians)
+                            {
+                                <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                    <div>
+                                        <strong>@tech.User.FullName</strong>
+                                        <br />
+                                        <small class="text-muted">@tech.User.Username</small>
+                                    </div>
+                                    @if (Model.Claim?.TechnicianId == tech.UserId)
+                                    {
+                                        <span class="badge bg-success">Assigned to this claim</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted mb-0">No technicians assigned to this service center.</p>
+                    }
+                </dd>
+            }
             <dt class="col-sm-3 d-flex align-items-center">
                 <i class="bi bi-calendar3 text-primary me-2"></i>Date Discovered
             </dt>
@@ -226,34 +326,60 @@
 </form>
 }
 
-<div class="mt-4 d-flex gap-2">
-    <a class="btn btn-secondary" asp-page="Index">Back</a>
-    @if (isEVM)
-    {
+<div class="mt-4 d-flex gap-2 flex-wrap align-items-center">
+    <a class="btn btn-secondary" asp-page="Index">
+        <i class="bi bi-arrow-left me-1"></i>Back
+    </a>
+    @{
         var isPending = string.Equals(status, "Pending", StringComparison.OrdinalIgnoreCase);
         var isOnHold = string.Equals(status, "OnHold", StringComparison.OrdinalIgnoreCase);
+        var isApproved = string.Equals(status, "Approved", StringComparison.OrdinalIgnoreCase);
         var isCompleted = string.Equals(status, "Completed", StringComparison.OrdinalIgnoreCase);
         var isClosed = string.Equals(status, "Closed", StringComparison.OrdinalIgnoreCase);
         var canApprove = isPending || isOnHold;
         var showArchive = isCompleted;
-        var showEVMButtons = !isClosed && (isPending || canApprove || showArchive);
-        
-        @if (showEVMButtons)
+    }
+    @if (isEVM || isAdmin)
+    {
+        @if (isPending)
         {
-            @if (isPending)
-            {
-                <form method="post" asp-page-handler="Approve"><input type="hidden" name="id" value="@Model.ClaimId" /><button class="btn btn-success" type="submit">Approve</button></form>
-                <form method="post" asp-page-handler="Reject"><input type="hidden" name="id" value="@Model.ClaimId" /><button class="btn btn-danger" type="submit">Reject</button></form>
-                <form method="post" asp-page-handler="OnHold"><input type="hidden" name="id" value="@Model.ClaimId" /><button class="btn btn-warning" type="submit">On Hold</button></form>
-            }
-            else if (canApprove)
-            {
-                <form method="post" asp-page-handler="Approve"><input type="hidden" name="id" value="@Model.ClaimId" /><button class="btn btn-success" type="submit">Approve</button></form>
-            }
-            @if (showArchive)
-            {
-                <form method="post" asp-page-handler="Archive"><input type="hidden" name="id" value="@Model.ClaimId" /><button class="btn btn-outline-dark" type="submit">Archive</button></form>
-            }
+            <form method="post" asp-page-handler="Approve" class="d-inline">
+                <input type="hidden" name="id" value="@Model.ClaimId" />
+                <button class="btn btn-success" type="submit">Approve</button>
+            </form>
+            <form method="post" asp-page-handler="Reject" class="d-inline">
+                <input type="hidden" name="id" value="@Model.ClaimId" />
+                <button class="btn btn-danger" type="submit">Reject</button>
+            </form>
+            <form method="post" asp-page-handler="OnHold" class="d-inline">
+                <input type="hidden" name="id" value="@Model.ClaimId" />
+                <button class="btn btn-warning" type="submit">On Hold</button>
+            </form>
+        }
+        else if (canApprove)
+        {
+            <form method="post" asp-page-handler="Approve" class="d-inline">
+                <input type="hidden" name="id" value="@Model.ClaimId" />
+                <button class="btn btn-success" type="submit">Approve</button>
+            </form>
+        }
+        
+        @if (isApproved)
+        {
+            <form method="post" asp-page-handler="RevertToPending" class="d-inline">
+                <input type="hidden" name="id" value="@Model.ClaimId" />
+                <button class="btn btn-warning" type="submit">
+                    <i class="bi bi-arrow-counterclockwise me-1"></i>Revert to Pending
+                </button>
+            </form>
+        }
+        
+        @if (showArchive)
+        {
+            <form method="post" asp-page-handler="Archive" class="d-inline">
+                <input type="hidden" name="id" value="@Model.ClaimId" />
+                <button class="btn btn-outline-dark" type="submit">Archive</button>
+            </form>
         }
     }
     @if (isTechnician)

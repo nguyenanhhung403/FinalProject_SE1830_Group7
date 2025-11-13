@@ -1,0 +1,179 @@
+@page
+@model EVWarrantyManagement.Pages.Inventory.IndexModel
+@{
+    ViewData["Title"] = "Inventory";
+}
+
+@section Scripts {
+    <script>
+        // Ensure inventory real-time is initialized
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.InventoryRealTime) {
+                if (!window.inventoryRealTime || !window.inventoryRealTime.isInitialized) {
+                    window.inventoryRealTime = new InventoryRealTime();
+                    window.inventoryRealTime.initialize();
+                }
+            }
+        });
+    </script>
+}
+
+<nav aria-label="breadcrumb" class="mb-2">
+    <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a asp-page="/Index"><i class="bi bi-house me-1"></i>Dashboard</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Inventory</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-2">
+    <div>
+        <h2 class="mb-0" style="font-size: 1.5rem;">
+            <i class="bi bi-box-seam me-2"></i>Inventory Management
+        </h2>
+        <p class="text-muted mb-0 small">Track stock levels and movements</p>
+    </div>
+    @if (User.IsInRole("Admin") || User.IsInRole("EVM Staff") || User.IsInRole("EVM"))
+    {
+        <a class="btn btn-sm btn-primary" asp-page="AdjustStock">
+            <i class="bi bi-plus-circle me-1"></i> Adjust Stock
+        </a>
+    }
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="card-title text-muted">Total Inventory Value</h5>
+                <h2 class="mb-0 text-success">$@Model.TotalInventoryValue.ToString("N2")</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="card-title text-muted">Low Stock Alerts</h5>
+                <h2 class="mb-0 text-warning">@Model.LowStockParts.Count</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                <h5 class="card-title text-muted">Total Parts</h5>
+                <h2 class="mb-0 text-info">@Model.AllParts.Count</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.LowStockParts.Any())
+{
+    <div class="card shadow-sm mb-3">
+        <div class="card-header bg-warning text-dark">
+            <h5 class="mb-0">
+                <i class="bi bi-exclamation-triangle me-2"></i>Low Stock Alerts
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-sm table-striped">
+                    <thead>
+                        <tr>
+                            <th>Part Code</th>
+                            <th>Part Name</th>
+                            <th>Current Stock</th>
+                            <th>Min Stock Level</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var part in Model.LowStockParts)
+                        {
+                            var inventory = Model.PartInventories.GetValueOrDefault(part.PartId);
+                            <tr>
+                                <td><code>@part.PartCode</code></td>
+                                <td>@part.PartName</td>
+                                <td><strong class="text-danger">@(inventory?.StockQuantity ?? 0)</strong></td>
+                                <td>@(inventory?.MinStockLevel ?? 0)</td>
+                                <td>
+                                    @if (inventory?.StockQuantity == 0)
+                                    {
+                                        <span class="badge bg-danger">Out of Stock</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">Low Stock</span>
+                                    }
+                                </td>
+                                <td>
+                                    <a class="btn btn-xs btn-outline-primary" asp-page="/Parts/Details" asp-route-id="@part.PartId" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+                                        <i class="bi bi-eye"></i> View
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="card shadow-sm">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>All Parts Inventory</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive" style="max-height: calc(100vh - 450px); overflow-y: auto;">
+            <table class="table table-sm table-striped">
+                <thead class="table-light sticky-top">
+                    <tr>
+                        <th>Part Code</th>
+                        <th>Part Name</th>
+                        <th>Stock Quantity</th>
+                        <th>Min Stock Level</th>
+                        <th>Unit Price</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var part in Model.AllParts)
+                    {
+                        var inventory = Model.PartInventories.GetValueOrDefault(part.PartId);
+                        var stockQty = inventory?.StockQuantity ?? 0;
+                        var minLevel = inventory?.MinStockLevel ?? 0;
+                        var status = "In Stock";
+                        var statusClass = "bg-success";
+                        if (stockQty == 0)
+                        {
+                            status = "Out of Stock";
+                            statusClass = "bg-danger";
+                        }
+                        else if (minLevel > 0 && stockQty < minLevel)
+                        {
+                            status = "Low Stock";
+                            statusClass = "bg-warning text-dark";
+                        }
+                        <tr>
+                            <td><code>@part.PartCode</code></td>
+                            <td>@part.PartName</td>
+                            <td><strong>@stockQty</strong></td>
+                            <td>@(minLevel > 0 ? minLevel.ToString() : "N/A")</td>
+                            <td>@(part.UnitPrice.HasValue ? $"${part.UnitPrice.Value:N2}" : "N/A")</td>
+                            <td><span class="badge @statusClass">@status</span></td>
+                            <td>
+                                <a class="btn btn-xs btn-outline-primary" asp-page="/Parts/Details" asp-route-id="@part.PartId" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">
+                                    <i class="bi bi-eye"></i> Details
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+

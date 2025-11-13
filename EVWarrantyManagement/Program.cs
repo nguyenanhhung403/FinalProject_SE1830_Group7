@@ -40,6 +40,8 @@ builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
 builder.Services.AddScoped<IPartRepository, PartRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<IWarrantyClaimRepository, WarrantyClaimRepository>();
+builder.Services.AddScoped<IServiceCenterRepository, ServiceCenterRepository>();
+builder.Services.AddScoped<IServiceBookingRepository, ServiceBookingRepository>();
 
 // BLL services
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -49,6 +51,8 @@ builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IWarrantyClaimService, WarrantyClaimService>();
 builder.Services.AddScoped<IReportingService, ReportingService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IServiceCenterService, ServiceCenterService>();
+builder.Services.AddScoped<IServiceBookingService, ServiceBookingService>();
 builder.Services.AddSingleton<IInvoicePdfBuilder, QuestPdfInvoiceBuilder>();
 
 QuestPDF.Settings.License = LicenseType.Community;
@@ -121,13 +125,17 @@ app.MapGet("/", async context =>
         {
             context.Response.Redirect("/Dashboard");
         }
+        else if (user.IsInRole("Customer"))
+        {
+            context.Response.Redirect("/Bookings/Create");
+        }
         else if (user.IsInRole("SC Staff") || user.IsInRole("SC"))
         {
             context.Response.Redirect("/Claims");
         }
-        else if (user.IsInRole("SC Technician") || user.IsInRole("SC"))
+        else if (user.IsInRole("SC Technician"))
         {
-            context.Response.Redirect("/Claims/Index");
+            context.Response.Redirect("/Bookings/MyTasks");
         }
         else
         {

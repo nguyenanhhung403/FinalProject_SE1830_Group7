@@ -29,6 +29,13 @@ public class CustomerRepository : ICustomerRepository
             .FirstOrDefaultAsync(c => c.CustomerId == customerId, cancellationToken);
     }
 
+    public async Task<Customer?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
+    {
+        return await _context.Customers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Email != null && c.Email == email, cancellationToken);
+    }
+
     public async Task<Customer> CreateAsync(Customer customer, CancellationToken cancellationToken = default)
     {
         customer.CreatedAt = DateTime.UtcNow;

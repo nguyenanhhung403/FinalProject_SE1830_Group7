@@ -1,0 +1,222 @@
+@page
+@model EVWarrantyManagement.Pages.Bookings.CreateModel
+@using EVWarrantyManagement.BO.Constants
+@{
+    ViewData["Title"] = "Book Service Appointment";
+}
+
+<div class="container-fluid px-0">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h2 class="mb-1">Book Service Appointment</h2>
+            <p class="text-muted mb-0">Schedule maintenance or repairs for your vehicle.</p>
+        </div>
+        <a class="btn btn-outline-secondary" asp-page="/Bookings/History">
+            <i class="bi bi-clock-history me-1"></i>Booking History
+        </a>
+    </div>
+
+    @if (TempData["Success"] is string successMessage)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle me-2"></i>@successMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">
+            <i class="bi bi-exclamation-triangle me-2"></i>@Model.ErrorMessage
+        </div>
+    }
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-calendar-plus me-2"></i>Booking Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Input.VehicleId" class="form-label">Vehicle (VIN)</label>
+                            <select asp-for="Input.VehicleId" class="form-select" asp-items="Model.VehicleOptions">
+                                <option value="">-- Select Vehicle --</option>
+                            </select>
+                            <span asp-validation-for="Input.VehicleId" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Input.ServiceCenterId" class="form-label">Service Center</label>
+                            <select asp-for="Input.ServiceCenterId" class="form-select" asp-items="Model.ServiceCenterOptions">
+                                <option value="">-- Select Service Center --</option>
+                            </select>
+                            <span asp-validation-for="Input.ServiceCenterId" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Input.ServiceType" class="form-label">Service Type</label>
+                            <select asp-for="Input.ServiceType" class="form-select" asp-items="Model.ServiceTypeOptions">
+                                <option value="">-- Select Service Type --</option>
+                            </select>
+                            <span asp-validation-for="Input.ServiceType" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label asp-for="Input.PreferredDate" class="form-label">Preferred Date</label>
+                            <input asp-for="Input.PreferredDate" class="form-control" type="date" />
+                            <span asp-validation-for="Input.PreferredDate" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label asp-for="Input.PreferredTime" class="form-label">Preferred Time</label>
+                            <input asp-for="Input.PreferredTime" class="form-control" type="time" />
+                            <span asp-validation-for="Input.PreferredTime" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="Input.EstimatedDurationMinutes" class="form-label">Estimated Duration (minutes)</label>
+                            <input asp-for="Input.EstimatedDurationMinutes" class="form-control" min="30" max="480" step="15" />
+                            <span asp-validation-for="Input.EstimatedDurationMinutes" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Input.CustomerNote" class="form-label">Additional Notes</label>
+                            <textarea asp-for="Input.CustomerNote" class="form-control" rows="3" placeholder="Describe any specific issue or request"></textarea>
+                            <span asp-validation-for="Input.CustomerNote" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-12 d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                            <div>
+                                <button type="submit" asp-page-handler="CheckAvailability" class="btn btn-outline-primary">
+                                    <i class="bi bi-search me-1"></i>Check Availability
+                                </button>
+                            </div>
+                            <button type="submit" asp-page-handler="Create" class="btn btn-primary">
+                                <i class="bi bi-calendar-check me-1"></i>Confirm Booking
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>How it works</h6>
+                </div>
+                <div class="card-body">
+                    <ol class="mb-0 small">
+                        <li>Select your vehicle and preferred service center.</li>
+                        <li>Pick a date/time and optional service duration.</li>
+                        <li>Check technician availability (optional but recommended).</li>
+                        <li>Submit the booking and wait for confirmation from the service center.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="bi bi-people-fill me-2"></i>Available Technicians</h6>
+                </div>
+                <div class="card-body">
+                    @if (!Model.AvailabilityChecked)
+                    {
+                        <p class="text-muted mb-0">Check availability to see technicians free at your requested time.</p>
+                    }
+                    else if (Model.AvailableTechnicians.Count == 0)
+                    {
+                        <div class="alert alert-warning mb-0">
+                            <i class="bi bi-exclamation-triangle me-2"></i>No technicians available for the selected slot. Please choose another time.
+                        </div>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush small">
+                            @foreach (var technician in Model.AvailableTechnicians)
+                            {
+                                <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                    <span>
+                                        <strong>@technician.User.FullName</strong><br />
+                                        <span class="text-muted">@technician.User.Email</span>
+                                    </span>
+                                    <span class="badge bg-success">Available</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mt-4">
+                <div class="card-header bg-white border-0">
+                    <h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>My Recent Bookings</h6>
+                </div>
+                <div class="card-body">
+                    @if (Model.RecentBookings.Count == 0)
+                    {
+                        <p class="text-muted mb-0">You have not created any bookings yet.</p>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush small">
+                            @foreach (var booking in Model.RecentBookings)
+                            {
+                                <li class="list-group-item px-0">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <strong>#@booking.ServiceBookingId</strong>
+                                            <div class="text-muted">@booking.ServiceCenter?.Name</div>
+                                            <div class="text-muted">@booking.PreferredStart.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge @GetBookingStatusClass(booking.Status)">@booking.Status</span>
+                                            <div class="mt-2">
+                                                <a class="btn btn-sm btn-outline-primary" asp-page="/Bookings/Details" asp-route-id="@booking.ServiceBookingId">
+                                                    View
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(booking.InternalNote))
+                                    {
+                                        <div class="mt-2 text-muted">Note: @booking.InternalNote</div>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                        <div class="mt-3 text-end">
+                            <a class="btn btn-sm btn-outline-primary" asp-page="/Bookings/History">
+                                View all bookings
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
+
+@functions {
+    private static string GetBookingStatusClass(string? status)
+    {
+        return status?.ToLower() switch
+        {
+            "pending" => "bg-warning text-dark",
+            "approved" => "bg-primary",
+            "inprogress" => "bg-info text-dark",
+            "completed" => "bg-success",
+            "rejected" => "bg-danger",
+            "cancelled" => "bg-secondary",
+            _ => "bg-secondary"
+        };
+    }
+}

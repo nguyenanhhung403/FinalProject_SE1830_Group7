@@ -211,7 +211,7 @@ class DashboardRealTime {
             <td><i class="bi bi-building text-muted me-1"></i>${data.serviceCenterName || data.ServiceCenterName || 'Unknown'}</td>
             <td><i class="bi bi-calendar3 me-1 text-muted"></i>Just now</td>
             <td class="text-nowrap">
-                <a class="btn btn-sm btn-outline-primary" href="/Dashboard/Claims/Detail?id=${data.claimId || data.ClaimId}">
+                <a class="btn btn-sm btn-outline-primary" href="/Claims/Details/${data.claimId || data.ClaimId}">
                     <i class="bi bi-eye me-1"></i>Detail
                 </a>
             </td>

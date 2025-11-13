@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using EVWarrantyManagement.BO.Models;
 using EVWarrantyManagement.DAL.Interfaces;
@@ -283,6 +284,64 @@ public class WarrantyClaimRepository : IWarrantyClaimRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task AssignTechnicianAsync(int claimId, int technicianId, int assignedByUserId, CancellationToken cancellationToken = default)
+    {
+        var claim = await _context.WarrantyClaims.FirstOrDefaultAsync(c => c.ClaimId == claimId, cancellationToken);
+        if (claim is null)
+        {
+            throw new InvalidOperationException($"Claim {claimId} not found.");
+        }
+
+        claim.TechnicianId = technicianId;
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // Log the assignment
+        _context.ClaimStatusLogs.Add(new ClaimStatusLog
+        {
+            ClaimId = claimId,
+            OldStatus = claim.StatusCode,
+            NewStatus = claim.StatusCode,
+            ChangedByUserId = assignedByUserId,
+            ChangedAt = DateTime.UtcNow,
+            Comment = $"Technician assigned: User ID {technicianId}"
+        });
+
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task RevertToPendingAsync(int claimId, int userId, string? note, CancellationToken cancellationToken = default)
+    {
+        var claim = await _context.WarrantyClaims.FindAsync(new object[] { claimId }, cancellationToken);
+        if (claim == null)
+        {
+            throw new InvalidOperationException($"Claim {claimId} not found.");
+        }
+
+        if (!string.Equals(claim.StatusCode, "Approved", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Only Approved claims can be reverted to Pending.");
+        }
+
+        var oldStatus = claim.StatusCode;
+        claim.StatusCode = "Pending";
+        claim.Note = note ?? "Reverted to Pending";
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        // Log status change using ClaimStatusLog
+        _context.ClaimStatusLogs.Add(new ClaimStatusLog
+        {
+            ClaimId = claimId,
+            OldStatus = oldStatus,
+            NewStatus = "Pending",
+            ChangedByUserId = userId,
+            ChangedAt = DateTime.UtcNow,
+            Comment = note ?? "Reverted to Pending"
+        });
+
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyList<ClaimStatusLog>> GetStatusLogsAsync(int claimId, CancellationToken cancellationToken = default)
     {
         return await _context.ClaimStatusLogs
@@ -361,6 +420,31 @@ public class WarrantyClaimRepository : IWarrantyClaimRepository
         return data.ToDictionary(
             x => $"{x.Year:D4}-{x.Month:D2}",
             x => x.Revenue);
+    }
+
+    public async Task<IReadOnlyDictionary<string, decimal>> GetRevenueByServiceCenterAsync(int? year, CancellationToken cancellationToken = default)
+    {
+        var query = _context.WarrantyClaims
+            .AsNoTracking()
+            .Where(c => c.StatusCode == "Completed" && c.TotalCost.HasValue);
+
+        if (year.HasValue)
+        {
+            query = query.Where(c => c.CompletionDate.HasValue && c.CompletionDate.Value.Year == year.Value);
+        }
+
+        var data = await query
+            .Join(
+                _context.ServiceCenters.AsNoTracking(),
+                claim => claim.ServiceCenterId,
+                sc => sc.ServiceCenterId,
+                (claim, sc) => new { ServiceCenterName = sc.Name, Revenue = claim.TotalCost!.Value }
+            )
+            .GroupBy(x => x.ServiceCenterName)
+            .Select(group => new { ServiceCenterName = group.Key, Revenue = group.Sum(x => x.Revenue) })
+            .ToListAsync(cancellationToken);
+
+        return data.ToDictionary(x => x.ServiceCenterName, x => x.Revenue);
     }
 
     public async Task<IReadOnlyList<WarrantyHistory>> GetArchivedClaimsAsync(int userId, string role, CancellationToken cancellationToken = default)

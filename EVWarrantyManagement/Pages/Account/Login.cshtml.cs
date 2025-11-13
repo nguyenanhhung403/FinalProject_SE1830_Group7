@@ -75,6 +75,8 @@ public class LoginModel : PageModel
             return RedirectToPage("/Claims/Index");
         if (string.Equals(roleName, "SC Technician", StringComparison.OrdinalIgnoreCase))
             return RedirectToPage("/Claims/Index");
+        if (string.Equals(roleName, "Customer", StringComparison.OrdinalIgnoreCase))
+            return Redirect("/Bookings/Create");
 
         return RedirectToPage("/Claims/Index");
     }

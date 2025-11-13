@@ -7,6 +7,8 @@ IF NOT EXISTS (SELECT 1 FROM ev.Roles WHERE RoleName = 'EVM Staff')
     INSERT INTO ev.Roles (RoleName) VALUES ('EVM Staff');
 IF NOT EXISTS (SELECT 1 FROM ev.Roles WHERE RoleName = 'Admin')
     INSERT INTO ev.Roles (RoleName) VALUES ('Admin');
+IF NOT EXISTS (SELECT 1 FROM ev.Roles WHERE RoleName = 'Customer')
+    INSERT INTO ev.Roles (RoleName) VALUES ('Customer');
 
 -- Tạo 3 service centers
 INSERT INTO ev.ServiceCenters (Name, Address, ContactName, ContactPhone) VALUES
@@ -31,14 +33,77 @@ IF NOT EXISTS (SELECT 1 FROM ev.Users WHERE Username = 'admin1')
     INSERT INTO ev.Users (Username, PasswordHash, FullName, Email, RoleId)
     VALUES ('admin1', HASHBYTES('SHA2_256','adminpass'), N'Admin 1', 'admin@example.com', (SELECT RoleId FROM ev.Roles WHERE RoleName='Admin'));
 
--- Tạo 1 khách hàng
-INSERT INTO ev.Customers (FullName, Email, Phone) VALUES ('Nguyen Van Khach','khach@example.com','0900000001');
+-- Tạo người dùng khách hàng (mật khẩu: password123)
+IF NOT EXISTS (SELECT 1 FROM ev.Users WHERE Username = 'customer1')
+    INSERT INTO ev.Users (Username, PasswordHash, FullName, Email, RoleId, Phone)
+    VALUES ('customer1', HASHBYTES('SHA2_256','password123'), N'Nguyễn Thị Mai', 'customer1@example.com', (SELECT RoleId FROM ev.Roles WHERE RoleName='Customer'), '0901001001');
 
--- Tạo 3 phương tiện
-INSERT INTO ev.Vehicles (VIN, Model, CustomerId, Year, RegistrationNumber) VALUES 
-('VIN0001','ModelX',1,2022,'29A-00001'),
-('VIN0002','ModelY',1,2021,'30A-00002'),
-('VIN0003','ModelZ',1,2023,'31A-00003');
+IF NOT EXISTS (SELECT 1 FROM ev.Users WHERE Username = 'customer2')
+    INSERT INTO ev.Users (Username, PasswordHash, FullName, Email, RoleId, Phone)
+    VALUES ('customer2', HASHBYTES('SHA2_256','password123'), N'Trần Minh Quân', 'customer2@example.com', (SELECT RoleId FROM ev.Roles WHERE RoleName='Customer'), '0902002002');
+
+IF NOT EXISTS (SELECT 1 FROM ev.Users WHERE Username = 'customer3')
+    INSERT INTO ev.Users (Username, PasswordHash, FullName, Email, RoleId, Phone)
+    VALUES ('customer3', HASHBYTES('SHA2_256','password123'), N'Lê Mỹ Hạnh', 'customer3@example.com', (SELECT RoleId FROM ev.Roles WHERE RoleName='Customer'), '0903003003');
+
+-- Tạo khách hàng
+IF NOT EXISTS (SELECT 1 FROM ev.Customers WHERE Email = 'khach@example.com')
+    INSERT INTO ev.Customers (FullName, Email, Phone) VALUES ('Nguyen Van Khach','khach@example.com','0900000001');
+
+IF NOT EXISTS (SELECT 1 FROM ev.Customers WHERE Email = 'customer1@example.com')
+    INSERT INTO ev.Customers (FullName, Email, Phone, Address) VALUES (N'Nguyễn Thị Mai','customer1@example.com','0901001001', N'12 Lê Lợi, Hà Nội');
+
+IF NOT EXISTS (SELECT 1 FROM ev.Customers WHERE Email = 'customer2@example.com')
+    INSERT INTO ev.Customers (FullName, Email, Phone, Address) VALUES (N'Trần Minh Quân','customer2@example.com','0902002002', N'56 Nguyễn Huệ, TP.HCM');
+
+IF NOT EXISTS (SELECT 1 FROM ev.Customers WHERE Email = 'customer3@example.com')
+    INSERT INTO ev.Customers (FullName, Email, Phone, Address) VALUES (N'Lê Mỹ Hạnh','customer3@example.com','0903003003', N'89 Bạch Đằng, Đà Nẵng');
+
+DECLARE @Customer1Id INT = (SELECT TOP 1 CustomerId FROM ev.Customers WHERE Email = 'customer1@example.com');
+DECLARE @Customer2Id INT = (SELECT TOP 1 CustomerId FROM ev.Customers WHERE Email = 'customer2@example.com');
+DECLARE @Customer3Id INT = (SELECT TOP 1 CustomerId FROM ev.Customers WHERE Email = 'customer3@example.com');
+
+IF @Customer1Id IS NOT NULL
+BEGIN
+    IF EXISTS (SELECT 1 FROM ev.Vehicles WHERE VIN = 'VIN0001')
+        UPDATE ev.Vehicles
+        SET CustomerId = @Customer1Id,
+            Model = 'ModelX',
+            Year = 2022,
+            RegistrationNumber = '29A-00001'
+        WHERE VIN = 'VIN0001';
+    ELSE
+        INSERT INTO ev.Vehicles (VIN, Model, CustomerId, Year, RegistrationNumber)
+        VALUES ('VIN0001','ModelX',@Customer1Id,2022,'29A-00001');
+END;
+
+IF @Customer2Id IS NOT NULL
+BEGIN
+    IF EXISTS (SELECT 1 FROM ev.Vehicles WHERE VIN = 'VIN0002')
+        UPDATE ev.Vehicles
+        SET CustomerId = @Customer2Id,
+            Model = 'ModelY',
+            Year = 2021,
+            RegistrationNumber = '30A-00002'
+        WHERE VIN = 'VIN0002';
+    ELSE
+        INSERT INTO ev.Vehicles (VIN, Model, CustomerId, Year, RegistrationNumber)
+        VALUES ('VIN0002','ModelY',@Customer2Id,2021,'30A-00002');
+END;
+
+IF @Customer3Id IS NOT NULL
+BEGIN
+    IF EXISTS (SELECT 1 FROM ev.Vehicles WHERE VIN = 'VIN0003')
+        UPDATE ev.Vehicles
+        SET CustomerId = @Customer3Id,
+            Model = 'ModelZ',
+            Year = 2023,
+            RegistrationNumber = '31A-00003'
+        WHERE VIN = 'VIN0003';
+    ELSE
+        INSERT INTO ev.Vehicles (VIN, Model, CustomerId, Year, RegistrationNumber)
+        VALUES ('VIN0003','ModelZ',@Customer3Id,2023,'31A-00003');
+END;
 
 -- Tạo phụ tùng
 INSERT INTO ev.Parts (PartCode, PartName, UnitPrice, WarrantyPeriodMonths) VALUES

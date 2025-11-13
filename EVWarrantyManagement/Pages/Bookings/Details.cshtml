@@ -1,0 +1,356 @@
+@page "{id:int}"
+@using System.Linq
+@model EVWarrantyManagement.Pages.Bookings.DetailsModel
+@{
+    ViewData["Title"] = $"Booking #{Model.Booking?.ServiceBookingId}";
+}
+
+@if (Model.Booking is null)
+{
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-triangle me-2"></i>Booking not found.
+    </div>
+    return;
+}
+
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/"><i class="bi bi-house me-1"></i>Home</a></li>
+        @if (User.IsInRole("Customer"))
+        {
+            <li class="breadcrumb-item"><a asp-page="/Bookings/History">Booking History</a></li>
+        }
+        else if (User.IsInRole("Admin") || User.IsInRole("EVM") || User.IsInRole("EVM Staff"))
+        {
+            <li class="breadcrumb-item"><a asp-page="/Bookings/All">All Bookings</a></li>
+        }
+        <li class="breadcrumb-item active" aria-current="page">Booking #@Model.Booking.ServiceBookingId</li>
+    </ol>
+</nav>
+
+@if (TempData["Error"] is string errorMsg)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i>@errorMsg
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+@if (TempData["Success"] is string successMsg)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle me-2"></i>@successMsg
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-end mb-3 gap-2">
+    @if (User.IsInRole("Customer"))
+    {
+        <a class="btn btn-outline-secondary" asp-page="/Bookings/History">
+            <i class="bi bi-arrow-left-circle me-1"></i>Back to History
+        </a>
+    }
+    else
+    {
+        <a class="btn btn-outline-secondary" asp-page="/Bookings/All">
+            <i class="bi bi-arrow-left-circle me-1"></i>Back to Bookings
+        </a>
+    }
+    @if (string.Equals(Model.Booking.Status, EVWarrantyManagement.BO.Constants.ServiceBookingStatuses.Completed, StringComparison.OrdinalIgnoreCase))
+    {
+        <a class="btn btn-primary" asp-page-handler="Invoice" asp-route-id="@Model.Booking.ServiceBookingId" target="_blank">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Download Invoice (PDF)
+        </a>
+    }
+    else
+    {
+        <button class="btn btn-outline-primary" type="button" disabled data-bs-toggle="tooltip" data-bs-title="Invoice available after service completion">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Invoice Pending
+        </button>
+    }
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Booking Overview</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">Booking ID</dt>
+                    <dd class="col-sm-7">#@Model.Booking.ServiceBookingId</dd>
+
+                    <dt class="col-sm-5">Status</dt>
+                    <dd class="col-sm-7">
+                        <span class="badge @GetStatusBadge(Model.Booking.Status)">@Model.Booking.Status</span>
+                    </dd>
+
+                    <dt class="col-sm-5">Service Type</dt>
+                    <dd class="col-sm-7">@Model.Booking.ServiceType</dd>
+
+                    <dt class="col-sm-5">Preferred</dt>
+                    <dd class="col-sm-7">@Model.Booking.PreferredStart.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+
+                    <dt class="col-sm-5">Confirmed</dt>
+                    <dd class="col-sm-7">
+                        @if (Model.Booking.ConfirmedStart.HasValue)
+                        {
+                            @Model.Booking.ConfirmedStart.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        }
+                        else
+                        {
+                            <span class="text-muted">Pending confirmation</span>
+                        }
+                    </dd>
+
+                    <dt class="col-sm-5">Duration</dt>
+                    <dd class="col-sm-7">@Model.Booking.EstimatedDurationMinutes mins</dd>
+
+                    <dt class="col-sm-5">Last Updated</dt>
+                    <dd class="col-sm-7">@Model.Booking.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white border-0">
+                <h5 class="mb-0"><i class="bi bi-person-vcard me-2"></i>Customer & Vehicle</h5>
+            </div>
+            <div class="card-body">
+                <h6 class="fw-semibold mb-1">@Model.Booking.Customer?.FullName</h6>
+                <p class="text-muted mb-3">
+                    <i class="bi bi-envelope me-2"></i>@Model.Booking.Customer?.Email<br />
+                    <i class="bi bi-telephone me-2"></i>@Model.Booking.Customer?.Phone
+                </p>
+                <div class="p-3 bg-light rounded border">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div>
+                            <div class="fw-semibold">Vehicle VIN</div>
+                            <div><code>@Model.Booking.Vehicle?.Vin</code></div>
+                        </div>
+                        <div class="text-muted">@Model.Booking.Vehicle?.Model</div>
+                    </div>
+                    <div class="mt-2 small text-muted">
+                        Registration: @Model.Booking.Vehicle?.RegistrationNumber ?? "N/A"
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white border-0">
+                <h5 class="mb-0"><i class="bi bi-building me-2"></i>Service Center</h5>
+            </div>
+            <div class="card-body">
+                <h6 class="fw-semibold mb-1">@Model.Booking.ServiceCenter?.Name</h6>
+                <p class="text-muted mb-3">
+                    <i class="bi bi-geo me-2"></i>@Model.Booking.ServiceCenter?.Address<br />
+                    <i class="bi bi-telephone me-2"></i>@Model.Booking.ServiceCenter?.ContactPhone
+                </p>
+                <div class="p-3 bg-light rounded border">
+                    <div class="fw-semibold mb-1">Assigned Technician</div>
+                    @if (Model.Booking.AssignedTechnician != null)
+                    {
+                        <div>@Model.Booking.AssignedTechnician.FullName</div>
+                        <div class="text-muted small">@Model.Booking.AssignedTechnician.Email</div>
+                    }
+                    else
+                    {
+                        <div class="text-muted">Not yet assigned</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white border-0">
+                <h5 class="mb-0"><i class="bi bi-card-text me-2"></i>Customer Notes</h5>
+            </div>
+            <div class="card-body">
+                @if (!string.IsNullOrWhiteSpace(Model.Booking.CustomerNote))
+                {
+                    <p class="mb-0">@Model.Booking.CustomerNote</p>
+                }
+                else
+                {
+                    <p class="text-muted mb-0">No customer notes provided.</p>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-journal-text me-2"></i>Internal Notes</h5>
+                <span class="badge bg-light text-dark">@Model.StatusLogs.Count status updates</span>
+            </div>
+            <div class="card-body">
+                @if (!string.IsNullOrWhiteSpace(Model.Booking.InternalNote))
+                {
+                    <p class="mb-3">@Model.Booking.InternalNote</p>
+                }
+                else
+                {
+                    <p class="text-muted">No internal notes recorded yet.</p>
+                }
+
+                <div class="border-top pt-3">
+                    <h6 class="fw-semibold mb-3"><i class="bi bi-clock-history me-1"></i>Status Timeline</h6>
+                    @if (Model.StatusLogs.Count == 0)
+                    {
+                        <p class="text-muted mb-0">No status changes recorded.</p>
+                    }
+                    else
+                    {
+                        <ul class="timeline">
+                            @foreach (var log in Model.StatusLogs.OrderByDescending(l => l.ChangedAt))
+                            {
+                                <li class="timeline-item">
+                                    <div class="timeline-point bg-primary"></div>
+                                    <div class="timeline-content">
+                            <div class="fw-semibold">
+                                @log.NewStatus
+                                <small class="text-muted">on @log.ChangedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small>
+                            </div>
+                                        <div class="text-muted small">
+                                            By: @(log.ChangedByUser?.FullName ?? "System")
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(log.Note))
+                                        {
+                                            <div class="small mt-1">@log.Note</div>
+                                        }
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-1">
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-tools me-2"></i>Repair Parts</h5>
+                <small class="text-muted">@((Model.Booking.ServiceBookingParts?.Count ?? 0)) item(s) recorded</small>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.Booking.ServiceBookingParts == null || Model.Booking.ServiceBookingParts.Count == 0)
+                {
+                    <div class="text-center py-4 text-muted">No parts have been recorded for this booking.</div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-striped align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Part</th>
+                                    <th>Quantity</th>
+                                    <th>Cost</th>
+                                    <th>Note</th>
+                                    <th>Added</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var part in Model.Booking.ServiceBookingParts.OrderByDescending(p => p.CreatedAt))
+                                {
+                                    <tr>
+                                        <td>
+                                            <div>@part.Part?.PartName</div>
+                                            <small class="text-muted">@part.Part?.PartCode</small>
+                                        </td>
+                                        <td>@part.Quantity</td>
+                                        <td>@(part.PartCost?.ToString("C2") ?? "—")</td>
+                                        <td>@part.Note</td>
+                                        <td>@part.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        .timeline {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            position: relative;
+        }
+        .timeline::before {
+            content: "";
+            position: absolute;
+            left: 12px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #dee2e6;
+        }
+        .timeline-item {
+            position: relative;
+            padding-left: 36px;
+            margin-bottom: 1.5rem;
+        }
+        .timeline-point {
+            position: absolute;
+            left: 6px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            top: 4px;
+        }
+        .timeline-content {
+            background-color: #f8f9fa;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            border: 1px solid #e9ecef;
+        }
+    </style>
+    <script>
+        // Ensure bookings real-time is initialized for this booking
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.BookingsRealTime) {
+                var bookingId = @(Model.Booking?.ServiceBookingId ?? 0);
+                if (bookingId > 0) {
+                    if (!window.bookingsRealTime || !window.bookingsRealTime.isInitialized) {
+                        window.bookingsRealTime = new BookingsRealTime();
+                        window.bookingsRealTime.initialize(bookingId);
+                    }
+                }
+            }
+        });
+    </script>
+}
+
+@functions{
+    private static string GetStatusBadge(string? status)
+    {
+        return status?.ToLowerInvariant() switch
+        {
+            "pending" => "bg-warning text-dark",
+            "approved" => "bg-primary",
+            "inprogress" => "bg-info text-dark",
+            "completed" => "bg-success",
+            "rejected" => "bg-danger",
+            "cancelled" => "bg-secondary",
+            _ => "bg-secondary"
+        };
+    }
+}
+

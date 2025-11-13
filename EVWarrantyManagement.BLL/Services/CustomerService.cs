@@ -24,6 +24,11 @@ public class CustomerService : ICustomerService
         return _customerRepository.GetByIdAsync(customerId, cancellationToken);
     }
 
+    public Task<Customer?> GetCustomerByEmailAsync(string email, CancellationToken cancellationToken = default)
+    {
+        return _customerRepository.GetByEmailAsync(email, cancellationToken);
+    }
+
     public Task<Customer> CreateCustomerAsync(Customer customer, CancellationToken cancellationToken = default)
     {
         return _customerRepository.CreateAsync(customer, cancellationToken);
